@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillForge — Discover & Match</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Permanent+Marker&family=Oswald:wght@400;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+:root {
+  --bg:     #F5F0E8;
+  --ink:    #1A1A1A;
+  --red:    #E63B3B;
+  --yellow: #F5C842;
+  --purple: #5C3FB0;
+  --blue:   #1A7FC2;
+  --green:  #2A9B7A;
+  --panel:  #FEFAF0;
+  --border: 3px solid #1A1A1A;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); font-family:'DM Sans',sans-serif; overflow-x:hidden; cursor:none; }
+
+/* ── CURSOR ── */
+#cur { position:fixed; z-index:9999; pointer-events:none; width:20px; height:20px; transform:translate(-50%,-50%); transition:transform .15s; }
+body.hov #cur { transform:translate(-50%,-50%) scale(1.8); }
+
+/* ── PAGE EDGE ── */
+.page-edge { height:6px; background:repeating-linear-gradient(90deg,var(--red) 0,var(--red) 40px,var(--yellow) 40px,var(--yellow) 80px,var(--ink) 80px,var(--ink) 120px); }
+
+/* ── NAV ── */
+nav { background:var(--ink); display:flex; justify-content:space-between; align-items:center; padding:.9rem 2.5rem; border-bottom:var(--border); position:sticky; top:0; z-index:200; }
+.logo { font-family:'Bangers',cursive; font-size:1.7rem; letter-spacing:3px; color:var(--yellow); text-shadow:2px 2px 0 var(--red); text-decoration:none; }
+.nav-r { display:flex; gap:1.5rem; align-items:center; }
+.nav-r a { font-family:'Oswald',sans-serif; font-size:.68rem; letter-spacing:2px; text-transform:uppercase; color:rgba(245,240,232,.35); text-decoration:none; transition:color .2s; cursor:none; }
+.nav-r a:hover, .nav-r a.active { color:var(--yellow); }
+.nav-btn { font-family:'Bangers',cursive; font-size:1rem; letter-spacing:2px; background:var(--red); color:white; border:2px solid var(--bg); padding:.35rem 1.2rem; cursor:none; box-shadow:3px 3px 0 var(--yellow); transition:transform .15s,box-shadow .15s; }
+.nav-btn:hover { transform:translate(-2px,-2px); box-shadow:5px 5px 0 var(--yellow); }
+
+/* ── MANGA PAGE ── */
+.manga-page { max-width:1200px; margin:0 auto; padding:2rem; }
+
+/* PANEL base */
+.panel { border:var(--border); position:relative; overflow:hidden; background:var(--panel); }
+
+/* Screentone */
+.st::after { content:''; position:absolute; inset:0; background-image:radial-gradient(circle,rgba(26,26,26,.1) 1px,transparent 1px); background-size:7px 7px; pointer-events:none; z-index:0; }
+
+/* Speed lines */
+.sl-bg { position:absolute; inset:-50%; background:repeating-conic-gradient(from 0deg at 50% 50%,transparent 0deg,transparent 2deg,rgba(26,26,26,.03) 2deg,rgba(26,26,26,.03) 2.3deg); pointer-events:none; z-index:0; }
+
+/* Section title bar */
+.sec-bar { background:var(--ink); padding:.55rem 1.5rem; display:inline-flex; align-items:center; gap:1rem; }
+.sec-bar h2 { font-family:'Bangers',cursive; font-size:1.6rem; letter-spacing:4px; color:var(--yellow); text-shadow:2px 2px 0 var(--red); }
+.sec-bar .tag { font-family:'Oswald',sans-serif; font-size:.6rem; font-weight:700; letter-spacing:2px; background:var(--red); color:white; padding:.1rem .6rem; }
+
+/* ══════════════════════════════════════
+   HERO BANNER — MANGA PANEL
+══════════════════════════════════════ */
+.discover-hero {
+  border:var(--border);
+  background:var(--ink);
+  display:grid; grid-template-columns:1fr auto;
+  position:relative; overflow:hidden;
+  margin-bottom:0;
+}
+.discover-hero .sl-bg { opacity:.15; }
+.dh-left { padding:3rem; position:relative; z-index:2; }
+.dh-chapter { font-family:'Oswald',sans-serif; font-size:.68rem; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:var(--yellow); margin-bottom:1rem; }
+.dh-title { font-family:'Bangers',cursive; font-size:clamp(3rem,6vw,5.5rem); letter-spacing:3px; line-height:.93; color:white; text-shadow:4px 4px 0 var(--red); }
+.dh-title .outline { -webkit-text-stroke:2px white; color:transparent; text-shadow:none; }
+.dh-sub { font-family:'Permanent Marker',cursive; font-size:.85rem; line-height:1.6; color:rgba(245,240,232,.45); margin-top:1.2rem; max-width:420px; }
+.dh-right { border-left:var(--border); padding:2rem 2.5rem; display:flex; flex-direction:column; justify-content:center; gap:1.5rem; min-width:220px; position:relative; z-index:2; }
+.dh-stat { text-align:center; }
+.dh-stat-n { font-family:'Bangers',cursive; font-size:2.5rem; letter-spacing:2px; color:var(--yellow); display:block; line-height:1; }
+.dh-stat-l { font-family:'Oswald',sans-serif; font-size:.58rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(245,240,232,.2); }
+.dh-divider { height:1px; background:rgba(245,240,232,.08); }
+
+/* ══════════════════════════════════════
+   SEARCH + FILTER BAR
+══════════════════════════════════════ */
+.search-bar {
+  border:var(--border); border-top:none;
+  background:white;
+  display:flex; align-items:stretch; gap:0;
+}
+.search-input-wrap { flex:1; display:flex; align-items:center; border-right:var(--border); }
+.search-icon { padding:0 1rem; font-size:1.1rem; opacity:.3; }
+.search-input {
+  flex:1; border:none; outline:none; background:transparent;
+  font-family:'Oswald',sans-serif; font-size:1rem; font-weight:600;
+  letter-spacing:1px; color:var(--ink); padding:.9rem 0;
+  cursor:none;
+}
+.search-input::placeholder { color:rgba(26,26,26,.25); font-weight:400; }
+.filter-group { display:flex; align-items:stretch; }
+.filter-btn {
+  font-family:'Bangers',cursive; font-size:.85rem; letter-spacing:2px;
+  padding:.5rem 1.2rem; border:none; border-right:2px solid rgba(26,26,26,.08);
+  background:transparent; color:rgba(26,26,26,.4); cursor:none;
+  transition:background .2s,color .2s;
+  white-space:nowrap;
+}
+.filter-btn:last-child { border-right:none; }
+.filter-btn:hover, .filter-btn.active { background:var(--ink); color:var(--yellow); }
+.search-go {
+  font-family:'Bangers',cursive; font-size:1rem; letter-spacing:2px;
+  background:var(--red); color:white; border:none; border-left:var(--border);
+  padding:.5rem 1.8rem; cursor:none;
+  transition:background .2s;
+}
+.search-go:hover { background:var(--ink); }
+
+/* Skill tag filters */
+.skill-tags {
+  border:var(--border); border-top:none;
+  padding:.75rem 1.5rem; background:var(--bg);
+  display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;
+}
+.skill-tags-label { font-family:'Oswald',sans-serif; font-size:.62rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(26,26,26,.3); margin-right:.25rem; flex-shrink:0; }
+.stag {
+  font-family:'Oswald',sans-serif; font-size:.7rem; font-weight:700; letter-spacing:1px;
+  padding:.25rem .75rem; border:2px solid rgba(26,26,26,.15); background:white;
+  color:rgba(26,26,26,.5); cursor:none; transition:all .2s;
+}
+.stag:hover, .stag.active { border-color:var(--ink); background:var(--ink); color:var(--yellow); }
+.stag.active::before { content:'✓ '; font-size:.6rem; }
+
+/* ══════════════════════════════════════
+   MAIN GRID — Results + Match Panel
+══════════════════════════════════════ */
+.discover-grid {
+  display:grid; grid-template-columns:1fr 360px;
+  gap:0; border:var(--border); border-top:none;
+}
+
+/* ── LEFT: USER CARDS ── */
+.results-panel { border-right:var(--border); }
+
+.results-header {
+  padding:.8rem 1.5rem; border-bottom:var(--border);
+  display:flex; justify-content:space-between; align-items:center;
+  background:var(--bg);
+}
+.results-count { font-family:'Bangers',cursive; font-size:1rem; letter-spacing:2px; color:var(--ink); }
+.results-count span { color:var(--red); }
+.sort-row { display:flex; gap:.5rem; }
+.sort-btn {
+  font-family:'Oswald',sans-serif; font-size:.62rem; font-weight:700; letter-spacing:1.5px;
+  text-transform:uppercase; padding:.25rem .7rem;
+  border:1.5px solid rgba(26,26,26,.12); background:transparent;
+  color:rgba(26,26,26,.4); cursor:none; transition:all .2s;
+}
+.sort-btn.active { border-color:var(--ink); background:var(--ink); color:var(--yellow); }
+
+/* user cards grid */
+.cards-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:0; }
+
+.user-card {
+  border-bottom:2px solid rgba(26,26,26,.08);
+  border-right:2px solid rgba(26,26,26,.08);
+  padding:1.5rem;
+  background:white; position:relative; overflow:hidden;
+  cursor:none; transition:background .25s,transform .2s;
+}
+.user-card:hover { background:var(--panel); z-index:2; }
+.user-card:nth-child(even) { border-right:none; }
+
+/* match % badge — top right */
+.match-badge {
+  position:absolute; top:.8rem; right:.8rem;
+  font-family:'Bangers',cursive; font-size:1rem; letter-spacing:1px;
+  padding:.2rem .6rem; border:2px solid var(--ink);
+}
+.match-badge.high  { background:var(--green); color:white; box-shadow:2px 2px 0 var(--ink); }
+.match-badge.med   { background:var(--yellow); color:var(--ink); box-shadow:2px 2px 0 var(--ink); }
+.match-badge.low   { background:white; color:var(--ink); }
+
+.uc-head { display:flex; align-items:center; gap:.75rem; margin-bottom:1rem; }
+.uc-av {
+  width:44px; height:44px; border:3px solid var(--ink); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Bangers',cursive; font-size:1rem; letter-spacing:1px; color:white;
+  box-shadow:3px 3px 0 var(--ink);
+}
+.uc-name { font-family:'Bangers',cursive; font-size:1.2rem; letter-spacing:1.5px; color:var(--ink); line-height:1; }
+.uc-role { font-size:.7rem; color:#777; font-style:italic; margin-top:.1rem; }
+
+/* mini tree inside card — SVG */
+.mini-tree-svg { width:100%; height:110px; display:block; margin-bottom:.75rem; }
+
+/* skill pills */
+.uc-pills { display:flex; flex-wrap:wrap; gap:.3rem; margin-bottom:.8rem; }
+.uc-pill {
+  font-size:.62rem; font-weight:500; padding:.15rem .5rem;
+  border:1.5px solid rgba(26,26,26,.1); color:#555;
+  display:flex; align-items:center; gap:.3rem;
+}
+.uc-pdot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+
+.uc-foot { display:flex; justify-content:space-between; align-items:center; }
+.uc-stats { display:flex; gap:.8rem; }
+.uc-stat { font-family:'Oswald',sans-serif; font-size:.62rem; font-weight:700; letter-spacing:1px; color:rgba(26,26,26,.35); }
+.uc-stat b { color:var(--ink); }
+
+.uc-btn {
+  font-family:'Bangers',cursive; font-size:.78rem; letter-spacing:2px;
+  padding:.3rem .9rem; background:var(--ink); color:var(--yellow);
+  border:none; cursor:none; box-shadow:2px 2px 0 var(--red);
+  transition:transform .15s,box-shadow .15s;
+}
+.uc-btn:hover { transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--red); }
+
+/* gap nodes in card — complement visual */
+.gap-row { margin-bottom:.7rem; }
+.gap-label { font-family:'Oswald',sans-serif; font-size:.58rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(26,26,26,.3); margin-bottom:.35rem; }
+.gap-pills { display:flex; flex-wrap:wrap; gap:.3rem; }
+.gap-pill {
+  font-size:.62rem; padding:.15rem .5rem;
+  border:1.5px dashed rgba(26,26,26,.2); color:#888; font-style:italic;
+  display:flex; align-items:center; gap:.25rem;
+}
+.gap-pill .up { color:var(--green); font-style:normal; }
+
+/* ══════════════════════════════════════
+   RIGHT — MATCH VISUALIZER PANEL
+══════════════════════════════════════ */
+.match-panel {
+  display:flex; flex-direction:column;
+  background:var(--ink); position:relative; overflow:hidden;
+}
+.match-panel .sl-bg { opacity:.08; }
+
+.mp-header {
+  padding:1rem 1.5rem; border-bottom:var(--border);
+  display:flex; align-items:center; gap:.75rem;
+  position:relative; z-index:2;
+}
+.mp-title { font-family:'Bangers',cursive; font-size:1.1rem; letter-spacing:3px; color:var(--yellow); text-shadow:2px 2px 0 var(--red); }
+.mp-live { font-family:'Oswald',sans-serif; font-size:.58rem; font-weight:700; letter-spacing:2px; background:var(--green); color:white; padding:.1rem .5rem; animation:blink 2s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* Active match card */
+.active-match {
+  padding:1.5rem; border-bottom:var(--border);
+  position:relative; z-index:2;
+}
+.am-bubble {
+  background:rgba(255,255,255,.05); border:1.5px solid rgba(245,240,232,.08);
+  padding:1rem 1.2rem; margin-bottom:1rem;
+  position:relative;
+}
+.am-bubble::before {
+  content:''; position:absolute; top:-9px; left:20px;
+  border:8px solid transparent; border-bottom-color:rgba(245,240,232,.08);
+}
+.am-bubble-text { font-family:'Permanent Marker',cursive; font-size:.75rem; line-height:1.55; color:rgba(245,240,232,.5); }
+.am-pct { font-family:'Bangers',cursive; font-size:4rem; letter-spacing:3px; color:var(--yellow); text-shadow:4px 4px 0 var(--red); line-height:1; text-align:center; margin-bottom:.25rem; }
+.am-label { font-family:'Oswald',sans-serif; font-size:.6rem; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:rgba(245,240,232,.2); text-align:center; }
+
+/* Overlap visual — Venn-like */
+.overlap-wrap { padding:1.5rem; border-bottom:var(--border); position:relative; z-index:2; }
+.overlap-title { font-family:'Oswald',sans-serif; font-size:.62rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(245,240,232,.25); margin-bottom:1rem; }
+#overlapSvg { width:100%; height:180px; display:block; }
+
+/* Skill gap analysis */
+.gap-analysis { padding:1.5rem; position:relative; z-index:2; flex:1; }
+.ga-title { font-family:'Oswald',sans-serif; font-size:.62rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(245,240,232,.25); margin-bottom:1rem; }
+.ga-row { display:flex; align-items:center; gap:.75rem; margin-bottom:.6rem; }
+.ga-skill { font-family:'Oswald',sans-serif; font-size:.78rem; font-weight:700; color:rgba(245,240,232,.6); flex:1; letter-spacing:.5px; }
+.ga-bar-track { width:80px; height:5px; background:rgba(245,240,232,.06); border:1px solid rgba(245,240,232,.08); position:relative; overflow:hidden; }
+.ga-bar-fill { height:100%; position:absolute; left:0; top:0; transition:width 1s ease; }
+.ga-type { font-family:'Oswald',sans-serif; font-size:.58rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:.1rem .4rem; }
+.ga-type.they { background:rgba(42,155,122,.2); color:var(--green); }
+.ga-type.you  { background:rgba(230,59,59,.2); color:var(--red); }
+.ga-type.both { background:rgba(245,200,66,.15); color:var(--yellow); }
+
+/* Match list */
+.match-list { padding:1.5rem; border-top:var(--border); position:relative; z-index:2; }
+.ml-title { font-family:'Oswald',sans-serif; font-size:.62rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(245,240,232,.25); margin-bottom:1rem; }
+.ml-item {
+  display:flex; align-items:center; gap:.75rem;
+  padding:.7rem 0; border-bottom:1px solid rgba(245,240,232,.05);
+  cursor:none; transition:background .2s; padding:.6rem .5rem;
+}
+.ml-item:last-child { border-bottom:none; }
+.ml-item:hover { background:rgba(245,240,232,.03); }
+.ml-item.active-item { background:rgba(245,200,66,.07); border-left:2px solid var(--yellow); padding-left:.5rem; }
+.ml-av {
+  width:32px; height:32px; border:2px solid rgba(245,240,232,.15); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Bangers',cursive; font-size:.75rem; color:white;
+}
+.ml-name { font-family:'Oswald',sans-serif; font-size:.8rem; font-weight:700; color:rgba(245,240,232,.7); flex:1; letter-spacing:.5px; }
+.ml-role { font-size:.62rem; color:rgba(245,240,232,.25); }
+.ml-pct { font-family:'Bangers',cursive; font-size:1rem; letter-spacing:1px; }
+
+/* ══════════════════════════════════════
+   TRENDING STRIP
+══════════════════════════════════════ */
+.trending-strip {
+  border:var(--border); border-top:none;
+  display:grid; grid-template-columns:auto 1fr;
+}
+.ts-label {
+  background:var(--red); border-right:var(--border);
+  display:flex; align-items:center; justify-content:center;
+  padding:1rem 1.2rem; writing-mode:vertical-rl; transform:rotate(180deg);
+  font-family:'Bangers',cursive; font-size:.85rem; letter-spacing:3px;
+  color:white; white-space:nowrap;
+}
+.ts-items { display:flex; overflow-x:auto; scrollbar-width:none; }
+.ts-items::-webkit-scrollbar { display:none; }
+.ts-item {
+  border-right:2px solid rgba(26,26,26,.08); padding:1rem 1.5rem;
+  flex-shrink:0; min-width:160px; transition:background .2s; cursor:none;
+}
+.ts-item:hover { background:white; }
+.ts-rank { font-family:'Bangers',cursive; font-size:2rem; letter-spacing:1px; color:rgba(26,26,26,.08); line-height:1; }
+.ts-skill { font-family:'Bangers',cursive; font-size:1.1rem; letter-spacing:2px; color:var(--ink); }
+.ts-growth { font-size:.68rem; color:var(--green); font-weight:500; }
+.ts-count { font-size:.65rem; color:#aaa; font-style:italic; }
+
+/* ══════════════════════════════════════
+   SPEECH BUBBLE TOOLTIP
+══════════════════════════════════════ */
+.card-tooltip {
+  position:fixed; z-index:800; pointer-events:none;
+  background:white; border:var(--border); box-shadow:5px 5px 0 var(--ink);
+  padding:.8rem 1rem; max-width:220px; display:none;
+}
+.ct-name { font-family:'Bangers',cursive; font-size:1rem; letter-spacing:2px; }
+.ct-text { font-family:'Permanent Marker',cursive; font-size:.7rem; line-height:1.4; color:#555; margin-top:.3rem; }
+
+/* NO RESULTS */
+.no-results {
+  grid-column:span 2; padding:4rem 2rem; text-align:center;
+  display:none;
+}
+.no-results .sfx { font-family:'Bangers',cursive; font-size:4rem; letter-spacing:3px; color:var(--yellow); -webkit-text-stroke:3px var(--ink); text-shadow:4px 4px 0 var(--red); transform:rotate(-5deg); display:inline-block; }
+.no-results p { font-family:'Permanent Marker',cursive; font-size:.9rem; color:#888; margin-top:1rem; }
+
+/* RESPONSIVE */
+@media(max-width:960px){
+  .discover-hero { grid-template-columns:1fr; }
+  .dh-right { display:none; }
+  .discover-grid { grid-template-columns:1fr; }
+  .match-panel { border-left:none; border-top:var(--border); }
+  .cards-grid { grid-template-columns:1fr; }
+  .user-card:nth-child(even) { border-right:2px solid rgba(26,26,26,.08); }
+  .trending-strip { grid-template-columns:1fr; }
+  .ts-label { display:none; }
+}
+</style>
+</head>
+<body>
+
+<div id="cur">
+  <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="4" fill="#E63B3B"/><circle cx="10" cy="10" r="8" stroke="#1A1A1A" stroke-width="2"/></svg>
+</div>
+
+<div class="card-tooltip" id="tooltip">
+  <div class="ct-name" id="tt-name"></div>
+  <div class="ct-text" id="tt-text"></div>
+</div>
+
+<div class="page-edge"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="LandingPage.html" class="logo">⬡ SkillForge</a>
+  <div class="nav-r">
+    <a href="profile.html">Profile</a>
+    <a href="#" class="active">Discover</a>
+    <a href="#">Matches</a>
+    <button class="nav-btn" id="navAuthBtn">LOGIN</button>
+  </div>
+</nav>
+
+<div class="manga-page">
+
+  <!-- ══ HERO PANEL ══ -->
+  <div class="discover-hero" id="discoverHero">
+    <div class="sl-bg"></div>
+    <div class="dh-left">
+      <div class="dh-chapter">◆ CHAPTER 002 — THE HUNT</div>
+      <h1 class="dh-title">
+        DISCOVER<br>
+        YOUR<br>
+        <span class="outline">COMPLEMENT</span>
+      </h1>
+      <p class="dh-sub">"Every skill tree has a missing branch. Find the person who fills yours — and fill theirs right back."</p>
+    </div>
+    <div class="dh-right st">
+      <div class="dh-stat">
+        <span class="dh-stat-n" id="ds1">0</span>
+        <span class="dh-stat-l">Developers</span>
+      </div>
+      <div class="dh-divider"></div>
+      <div class="dh-stat">
+        <span class="dh-stat-n" id="ds2">0</span>
+        <span class="dh-stat-l">Skills mapped</span>
+      </div>
+      <div class="dh-divider"></div>
+      <div class="dh-stat">
+        <span class="dh-stat-n" id="ds3">0</span>
+        <span class="dh-stat-l">Matches today</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH BAR -->
+  <div class="search-bar">
+    <div class="search-input-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="searchInput" type="text" placeholder="SEARCH BY SKILL, NAME, OR ROLE..."/>
+    </div>
+    <div class="filter-group">
+      <button class="filter-btn active" data-filter="all">ALL</button>
+      <button class="filter-btn" data-filter="complement">COMPLEMENT</button>
+      <button class="filter-btn" data-filter="mentor">MENTOR</button>
+      <button class="filter-btn" data-filter="cofounder">CO-FOUNDER</button>
+    </div>
+    <button class="search-go" id="searchGo">SEARCH →</button>
+  </div>
+
+  <!-- SKILL TAGS -->
+  <div class="skill-tags">
+    <span class="skill-tags-label">Filter by skill:</span>
+    <button class="stag" data-skill="JavaScript">JavaScript</button>
+    <button class="stag" data-skill="React">React</button>
+    <button class="stag" data-skill="Python">Python</button>
+    <button class="stag" data-skill="Node.js">Node.js</button>
+    <button class="stag" data-skill="ML">ML</button>
+    <button class="stag" data-skill="DevOps">DevOps</button>
+    <button class="stag" data-skill="SQL">SQL</button>
+    <button class="stag" data-skill="Rust">Rust</button>
+    <button class="stag" data-skill="TypeScript">TypeScript</button>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="discover-grid">
+
+    <!-- RESULTS -->
+    <div class="results-panel">
+      <div class="results-header">
+        <div class="results-count">Showing <span id="resultCount">8</span> developers</div>
+        <div class="sort-row">
+          <button class="sort-btn active" data-sort="match">MATCH %</button>
+          <button class="sort-btn" data-sort="level">LEVEL</button>
+          <button class="sort-btn" data-sort="vouches">VOUCHES</button>
+        </div>
+      </div>
+
+      <div class="cards-grid" id="cardsGrid">
+        <!-- populated by JS -->
+      </div>
+
+      <div class="no-results" id="noResults">
+        <div class="sfx">MISS!!</div>
+        <p>No developers found with those skills.<br>Try removing some filters.</p>
+      </div>
+    </div>
+
+    <!-- MATCH VISUALIZER -->
+    <div class="match-panel">
+      <div class="sl-bg"></div>
+      <div class="mp-header">
+        <span class="mp-title">◆ MATCH ANALYSIS</span>
+        <span class="mp-live">● LIVE</span>
+      </div>
+
+      <!-- Active match info -->
+      <div class="active-match" id="activeMatch">
+        <div class="am-bubble">
+          <div class="am-bubble-text" id="amQuote">"Click any developer card to see your complement analysis..."</div>
+        </div>
+        <div class="am-pct" id="amPct">--</div>
+        <div class="am-label" id="amLabel">SELECT A DEVELOPER</div>
+      </div>
+
+      <!-- Overlap visualization -->
+      <div class="overlap-wrap">
+        <div class="overlap-title">◆ Skill overlap visualization</div>
+        <svg id="overlapSvg"></svg>
+      </div>
+
+      <!-- Gap analysis -->
+      <div class="gap-analysis" id="gapAnalysis">
+        <div class="ga-title">◆ Skill gap breakdown</div>
+        <div id="gaRows">
+          <div style="font-family:'Permanent Marker',cursive;font-size:.78rem;color:rgba(245,240,232,.2);text-align:center;padding:1rem 0;">Select a developer card ↑</div>
+        </div>
+      </div>
+
+      <!-- Match list -->
+      <div class="match-list">
+        <div class="ml-title">◆ Your top matches</div>
+        <div id="matchList"><!-- populated by JS --></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRENDING STRIP -->
+  <div class="trending-strip">
+    <div class="ts-label">TRENDING SKILLS</div>
+    <div class="ts-items">
+      <div class="ts-item"><div class="ts-rank">01</div><div class="ts-skill">Rust</div><div class="ts-growth">↑ +34% this week</div><div class="ts-count">2.1k developers</div></div>
+      <div class="ts-item"><div class="ts-rank">02</div><div class="ts-skill">LLM Ops</div><div class="ts-growth">↑ +28% this week</div><div class="ts-count">1.8k developers</div></div>
+      <div class="ts-item"><div class="ts-rank">03</div><div class="ts-skill">TypeScript</div><div class="ts-growth">↑ +22% this week</div><div class="ts-count">5.4k developers</div></div>
+      <div class="ts-item"><div class="ts-rank">04</div><div class="ts-skill">GraphQL</div><div class="ts-growth">↑ +18% this week</div><div class="ts-count">1.2k developers</div></div>
+      <div class="ts-item"><div class="ts-rank">05</div><div class="ts-skill">WebAssembly</div><div class="ts-growth">↑ +15% this week</div><div class="ts-count">890 developers</div></div>
+      <div class="ts-item"><div class="ts-rank">06</div><div class="ts-skill">Kubernetes</div><div class="ts-growth">↑ +12% this week</div><div class="ts-count">3.2k developers</div></div>
+      <div class="ts-item"><div class="ts-rank">07</div><div class="ts-skill">Svelte</div><div class="ts-growth">↑ +11% this week</div><div class="ts-count">980 developers</div></div>
+    </div>
+  </div>
+
+</div>
+<div class="page-edge"></div>
+
+<script src="api.js"></script>
+<script src="auth-modal.js"></script>
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+/* ══ CURSOR ══ */
+const cur = document.getElementById('cur');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX + 'px';
+  cur.style.top  = e.clientY + 'px';
+});
+
+/* ══ DEVELOPER DATA — loaded from API ══ */
+let MY_SKILLS = [];
+let ALL_DEVELOPERS = [];
+let filteredDevs = [];
+let activeDevId = null;
+
+// ── Nav auth wiring ──────────────────────────────────
+(async () => {
+  if (API.isLoggedIn()) {
+    try {
+      const user = await API.me();
+      localStorage.setItem('sf_user_id', user.id);
+      document.getElementById('navAuthBtn').textContent = user.display_name.split(' ')[0].toUpperCase();
+      // Load MY skills for overlap/gap analysis
+      const tree = await API.getSkillTree(user.id);
+      MY_SKILLS = tree.nodes.map(n => ({ id: n.name, level: n.level, color: n.color }));
+    } catch { API.logout(); }
+  } else {
+    document.getElementById('navAuthBtn').addEventListener('click', () => AuthModal.show());
+  }
+  loadDiscover();
+})();
+
+document.addEventListener('sf:login', async e => {
+  document.getElementById('navAuthBtn').textContent = e.detail.display_name.split(' ')[0].toUpperCase();
+  const tree = await API.getSkillTree(e.detail.id).catch(() => ({ nodes: [] }));
+  MY_SKILLS = tree.nodes.map(n => ({ id: n.name, level: n.level, color: n.color }));
+  loadDiscover();
+});
+
+// ── Load from API ────────────────────────────────────
+async function loadDiscover() {
+  try {
+    const devs = await API.discover({ sort: activeSortType, limit: 20 });
+    ALL_DEVELOPERS = devs.map(d => ({
+      id:       d.id,
+      name:     d.display_name,
+      initials: d.avatar_initials || d.display_name.split(' ').map(w=>w[0]).join('').slice(0,2),
+      role:     d.role_title || 'Developer',
+      level:    d.level || 1,
+      avBg:     d.avatar_color || '#E63B3B',
+      match:    Math.round(d.match_score || 0),
+      vouches:  d.vouch_count || 0,
+      skills:   (d.skills || []).map(s => ({ id: s.name, level: s.level, color: s.color })),
+      links:    [],
+      gaps:     (d.fills_your_gaps || []).map(s => s.name),
+      theyNeed: (d.you_fill_theirs || []).map(s => s.name),
+      quote:    `"${d.role_title || 'Developer'} · Level ${d.level}"`,
+    }));
+    filteredDevs = [...ALL_DEVELOPERS];
+    renderCards();
+    renderMatchList();
+    if (filteredDevs.length > 0) setTimeout(() => selectDev(filteredDevs[0]), 800);
+  } catch (err) {
+    console.error('Discover load failed — using fallback data:', err);
+    // Fallback so page still looks good without backend
+    ALL_DEVELOPERS = FALLBACK_DEVS;
+    filteredDevs = [...ALL_DEVELOPERS];
+    renderCards();
+    renderMatchList();
+    if (filteredDevs.length > 0) setTimeout(() => selectDev(filteredDevs[0]), 800);
+  }
+}
+
+// ── Fallback demo data (used if API is down) ─────────
+const FALLBACK_DEVS = [
+  { id:1, name:'Lisa Park', initials:'LP', role:'ML Engineer', level:38, avBg:'#5C3FB0', match:94, vouches:18,
+    skills:[{id:'Python',level:5,color:'#E63B3B'},{id:'TensorFlow',level:4,color:'#5C3FB0'},{id:'MLOps',level:4,color:'#2A9B7A'}],
+    links:[], gaps:['Python','TensorFlow','MLOps'], theyNeed:['React','Node','Docker'], quote:'"Deep learning is just cooking."' },
+  { id:2, name:'James Tao', initials:'JT', role:'DevOps Engineer', level:31, avBg:'#1A7FC2', match:87, vouches:14,
+    skills:[{id:'Kubernetes',level:5,color:'#E63B3B'},{id:'Terraform',level:4,color:'#1A7FC2'},{id:'Go',level:4,color:'#2A9B7A'}],
+    links:[], gaps:['Kubernetes','Terraform','Go'], theyNeed:['React','JavaScript','SQL'], quote:'"K8s or bust."' },
+  { id:3, name:'Chen Wei', initials:'CW', role:'Backend Engineer', level:35, avBg:'#2A9B7A', match:81, vouches:16,
+    skills:[{id:'Rust',level:4,color:'#E63B3B'},{id:'PostgreSQL',level:5,color:'#1A7FC2'},{id:'Go',level:4,color:'#2A9B7A'}],
+    links:[], gaps:['Rust','Go','PostgreSQL'], theyNeed:['React','JavaScript','Docker'], quote:'"Memory safety is not optional."' },
+];
+
+let activeSkillFilter = [];
+let activeFilterType = 'all';
+let activeSortType = 'match';
+
+/* ══ COUNT UP ══ */
+function countUp(id, target, suffix='') {
+  const el = document.getElementById(id);
+  let v=0; const s=target/60;
+  const t=setInterval(()=>{ v+=s; if(v>=target){v=target;clearInterval(t);} el.textContent=Math.floor(v)+suffix; },16);
+}
+setTimeout(()=>{ countUp('ds1',12847); countUp('ds2',84200); countUp('ds3',347); },300);
+
+/* ══ MINI D3 TREE in cards ══ */
+function drawMiniTree(svgEl, dev) {
+  const W = svgEl.clientWidth || 200;
+  const H = 110;
+  const svg = d3.select(svgEl).attr('viewBox',`0 0 ${W} ${H}`);
+  svg.selectAll('*').remove();
+
+  const nodes = dev.skills.map(s=>({...s}));
+  const links = (dev.links||[]).map(l=>({source:l.s,target:l.t}));
+
+  const sim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(55))
+    .force('charge', d3.forceManyBody().strength(-180))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('collision', d3.forceCollide().radius(18))
+    .stop();
+
+  for(let i=0;i<80;i++) sim.tick();
+
+  svg.append('g').selectAll('line').data(links).enter().append('line')
+    .attr('stroke','rgba(255,255,255,0.12)').attr('stroke-width',1.5)
+    .attr('x1',d=>d.source.x).attr('y1',d=>d.source.y)
+    .attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+
+  const node = svg.append('g').selectAll('g').data(nodes).enter().append('g');
+  node.append('circle').attr('r',d=>8+d.level*2.5).attr('fill',d=>d.color)
+    .attr('stroke','#fff').attr('stroke-width',1.5)
+    .attr('cx',d=>d.x).attr('cy',d=>d.y);
+  node.append('text')
+    .attr('x',d=>d.x).attr('y',d=>d.y+1)
+    .attr('text-anchor','middle').attr('dominant-baseline','middle')
+    .attr('fill','white').attr('font-size','7').attr('font-weight','700')
+    .attr('font-family','Oswald,sans-serif').attr('pointer-events','none')
+    .text(d=>d.id.length>6?d.id.slice(0,5)+'…':d.id);
+
+  // pulse on top skill
+  const top = nodes.reduce((a,b)=>a.level>b.level?a:b);
+  svg.append('circle').attr('r',8+top.level*2.5+6).attr('cx',top.x).attr('cy',top.y)
+    .attr('fill',top.color).attr('opacity',0.1)
+    .append('animate').attr('attributeName','r')
+    .attr('values',`${8+top.level*2.5};${8+top.level*2.5+10};${8+top.level*2.5}`)
+    .attr('dur','2.5s').attr('repeatCount','indefinite');
+}
+
+/* ══ RENDER CARDS ══ */
+function renderCards() {
+  const grid = document.getElementById('cardsGrid');
+  grid.innerHTML = '';
+
+  if(filteredDevs.length === 0){
+    document.getElementById('noResults').style.display = 'block';
+    document.getElementById('resultCount').textContent = '0';
+    return;
+  }
+  document.getElementById('noResults').style.display = 'none';
+  document.getElementById('resultCount').textContent = filteredDevs.length;
+
+  filteredDevs.forEach((dev, i) => {
+    const card = document.createElement('div');
+    card.className = 'user-card';
+    card.dataset.id = dev.id;
+
+    const badgeClass = dev.match >= 85 ? 'high' : dev.match >= 70 ? 'med' : 'low';
+    const pills = dev.skills.slice(0,3).map(s=>
+      `<div class="uc-pill"><span class="uc-pdot" style="background:${s.color}"></span>${s.id}</div>`
+    ).join('');
+    const gapPills = dev.gaps.slice(0,2).map(g=>
+      `<div class="gap-pill"><span class="up">↑</span>${g}</div>`
+    ).join('');
+    const theyNeedPills = dev.theyNeed.slice(0,2).map(g=>
+      `<div class="gap-pill">${g} ↑ you</div>`
+    ).join('');
+
+    card.innerHTML = `
+      <div class="match-badge ${badgeClass}">${dev.match}% MATCH</div>
+      <div class="uc-head">
+        <div class="uc-av" style="background:${dev.avBg}">${dev.initials}</div>
+        <div>
+          <div class="uc-name">${dev.name.toUpperCase()}</div>
+          <div class="uc-role">${dev.role}</div>
+        </div>
+      </div>
+      <svg class="mini-tree-svg" id="mtree-${dev.id}"></svg>
+      <div class="uc-pills">${pills}</div>
+      <div class="gap-row">
+        <div class="gap-label">They fill your gaps</div>
+        <div class="gap-pills">${gapPills}</div>
+      </div>
+      <div class="gap-row">
+        <div class="gap-label">You fill theirs</div>
+        <div class="gap-pills">${theyNeedPills}</div>
+      </div>
+      <div class="uc-foot">
+        <div class="uc-stats">
+          <div class="uc-stat">LVL <b>${dev.level}</b></div>
+          <div class="uc-stat"><b>${dev.vouches}</b> vouches</div>
+        </div>
+        <button class="uc-btn">VIEW →</button>
+      </div>
+    `;
+
+    card.addEventListener('click', () => selectDev(dev));
+    card.addEventListener('mouseenter', () => {
+      document.body.classList.add('hov');
+      showTooltip(dev);
+    });
+    card.addEventListener('mouseleave', () => {
+      document.body.classList.remove('hov');
+      hideTooltip();
+    });
+
+    grid.appendChild(card);
+
+    // Draw mini tree after append
+    setTimeout(() => {
+      const svgEl = document.getElementById(`mtree-${dev.id}`);
+      if(svgEl) drawMiniTree(svgEl, dev);
+    }, 50);
+  });
+
+  // highlight active
+  highlightActiveCard();
+
+  // animate in
+  gsap.from('.user-card', { opacity:0, y:20, duration:.5, stagger:.06, ease:'power2.out' });
+}
+
+/* ══ SELECT DEV — update match panel ══ */
+function selectDev(dev) {
+  activeDevId = dev.id;
+  highlightActiveCard();
+
+  // Update header
+  document.getElementById('amPct').textContent = dev.match + '%';
+  document.getElementById('amLabel').textContent = `COMPLEMENT MATCH WITH ${dev.name.toUpperCase()}`;
+  document.getElementById('amQuote').textContent = dev.quote;
+
+  // Animate pct
+  gsap.from('#amPct', { scale:0.5, opacity:0, duration:.4, ease:'back.out(2)' });
+
+  // Update overlap SVG
+  drawOverlap(dev);
+
+  // Update gap analysis
+  drawGapAnalysis(dev);
+
+  // Update match list highlight
+  document.querySelectorAll('.ml-item').forEach(i => i.classList.remove('active-item'));
+  const mlItem = document.querySelector(`.ml-item[data-id="${dev.id}"]`);
+  if(mlItem) mlItem.classList.add('active-item');
+
+  // Flash SFX
+  flashSFX(dev.match >= 85 ? 'PERFECT!' : dev.match >= 70 ? 'GREAT MATCH!' : 'POSSIBLE!', dev.match >= 85 ? '#2A9B7A' : dev.match >= 70 ? '#F5C842' : '#E63B3B');
+}
+
+function highlightActiveCard() {
+  document.querySelectorAll('.user-card').forEach(c => {
+    c.style.borderLeft = '';
+    c.style.background = '';
+  });
+  const active = document.querySelector(`.user-card[data-id="${activeDevId}"]`);
+  if(active) {
+    active.style.borderLeft = '4px solid #F5C842';
+    active.style.background = '#FFFDF0';
+  }
+}
+
+/* ══ OVERLAP SVG — Venn-like D3 ══ */
+function drawOverlap(dev) {
+  const svg = d3.select('#overlapSvg');
+  svg.selectAll('*').remove();
+  const W = document.getElementById('overlapSvg').clientWidth || 320;
+  const H = 180;
+
+  // My skills circle
+  svg.append('circle').attr('cx', W*0.38).attr('cy', H/2).attr('r', 68)
+    .attr('fill','rgba(230,59,59,0.08)').attr('stroke','rgba(230,59,59,0.3)').attr('stroke-width',2);
+  svg.append('text').attr('x', W*0.22).attr('y', H/2-5)
+    .attr('text-anchor','middle').attr('fill','rgba(230,59,59,0.5)')
+    .attr('font-family','Bangers,cursive').attr('font-size','11').attr('letter-spacing','1')
+    .text('YOU');
+
+  // Their skills circle
+  svg.append('circle').attr('cx', W*0.62).attr('cy', H/2).attr('r', 68)
+    .attr('fill','rgba(26,127,194,0.08)').attr('stroke','rgba(26,127,194,0.3)').attr('stroke-width',2);
+  svg.append('text').attr('x', W*0.78).attr('y', H/2-5)
+    .attr('text-anchor','middle').attr('fill','rgba(26,127,194,0.5)')
+    .attr('font-family','Bangers,cursive').attr('font-size','11').attr('letter-spacing','1')
+    .text(dev.name.split(' ')[0].toUpperCase());
+
+  // Shared skills — find overlap
+  const myIds = MY_SKILLS.map(s=>s.id);
+  const theirIds = dev.skills.map(s=>s.id);
+  const shared = myIds.filter(s => theirIds.includes(s));
+
+  // Center overlap label
+  svg.append('text').attr('x', W*0.5).attr('y', H/2-8)
+    .attr('text-anchor','middle').attr('fill','rgba(245,200,66,0.7)')
+    .attr('font-family','Bangers,cursive').attr('font-size','10').attr('letter-spacing','1')
+    .text(shared.length > 0 ? shared[0] : 'UNIQUE');
+  if(shared[1]) {
+    svg.append('text').attr('x', W*0.5).attr('y', H/2+8)
+      .attr('text-anchor','middle').attr('fill','rgba(245,200,66,0.5)')
+      .attr('font-family','Bangers,cursive').attr('font-size','9').attr('letter-spacing','1')
+      .text(shared[1]);
+  }
+
+  // My skill dots (left side)
+  MY_SKILLS.filter(s => !theirIds.includes(s.id)).forEach((s,i) => {
+    svg.append('text').attr('x', W*0.2).attr('y', H/2 - 20 + i*18)
+      .attr('text-anchor','middle').attr('fill',s.color).attr('font-size','9')
+      .attr('font-family','Oswald,sans-serif').attr('font-weight','700').text(s.id);
+  });
+
+  // Their skill dots (right side)
+  dev.skills.filter(s => !myIds.includes(s.id)).forEach((s,i) => {
+    svg.append('text').attr('x', W*0.8).attr('y', H/2 - 20 + i*18)
+      .attr('text-anchor','middle').attr('fill',s.color).attr('font-size','9')
+      .attr('font-family','Oswald,sans-serif').attr('font-weight','700').text(s.id.length>7?s.id.slice(0,6)+'…':s.id);
+  });
+
+  gsap.from('#overlapSvg circle', { scale:0, transformOrigin:'center', duration:.5, stagger:.1, ease:'back.out(1.5)' });
+}
+
+/* ══ GAP ANALYSIS ══ */
+function drawGapAnalysis(dev) {
+  const rows = document.getElementById('gaRows');
+  rows.innerHTML = '';
+  const myIds = MY_SKILLS.map(s=>s.id);
+  const theirIds = dev.skills.map(s=>s.id);
+
+  // They have, I don't
+  dev.skills.forEach(s => {
+    if(!myIds.includes(s.id)) {
+      rows.appendChild(makeGaRow(s.id, s.level/5, s.color, 'they', 'FILLS YOUR GAP'));
+    }
+  });
+  // I have, they don't
+  MY_SKILLS.forEach(s => {
+    if(!theirIds.includes(s.id)) {
+      rows.appendChild(makeGaRow(s.id, s.level/5, s.color, 'you', 'YOU FILL THEIRS'));
+    }
+  });
+  // Shared
+  MY_SKILLS.filter(s => theirIds.includes(s.id)).forEach(s => {
+    rows.appendChild(makeGaRow(s.id, s.level/5, s.color, 'both', 'SHARED'));
+  });
+
+  // animate bars
+  setTimeout(() => {
+    rows.querySelectorAll('.ga-bar-fill').forEach(b => {
+      const w = b.dataset.w;
+      b.style.width = '0';
+      setTimeout(() => { b.style.width = w; }, 50);
+    });
+  }, 50);
+}
+
+function makeGaRow(name, pct, color, type, label) {
+  const div = document.createElement('div');
+  div.className = 'ga-row';
+  div.innerHTML = `
+    <span class="ga-skill">${name}</span>
+    <div class="ga-bar-track"><div class="ga-bar-fill" data-w="${Math.round(pct*100)}%" style="background:${color};width:0"></div></div>
+    <span class="ga-type ${type}">${label}</span>
+  `;
+  return div;
+}
+
+/* ══ MATCH LIST (right sidebar) ══ */
+function renderMatchList() {
+  const list = document.getElementById('matchList');
+  list.innerHTML = '';
+  [...ALL_DEVELOPERS].sort((a,b)=>b.match-a.match).slice(0,5).forEach(dev => {
+    const div = document.createElement('div');
+    div.className = 'ml-item' + (dev.id===activeDevId?' active-item':'');
+    div.dataset.id = dev.id;
+    const pctColor = dev.match>=85?'#2A9B7A':dev.match>=70?'#F5C842':'rgba(245,240,232,.4)';
+    div.innerHTML = `
+      <div class="ml-av" style="background:${dev.avBg}">${dev.initials}</div>
+      <div style="flex:1">
+        <div class="ml-name">${dev.name}</div>
+        <div class="ml-role">${dev.role}</div>
+      </div>
+      <div class="ml-pct" style="color:${pctColor}">${dev.match}%</div>
+    `;
+    div.addEventListener('click', () => { selectDev(dev); scrollToCard(dev.id); });
+    div.addEventListener('mouseenter', () => document.body.classList.add('hov'));
+    div.addEventListener('mouseleave', () => document.body.classList.remove('hov'));
+    list.appendChild(div);
+  });
+}
+
+function scrollToCard(devId) {
+  const card = document.querySelector(`.user-card[data-id="${devId}"]`);
+  if(card) card.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+/* ══ TOOLTIP ══ */
+function showTooltip(dev) {
+  const tt = document.getElementById('tooltip');
+  document.getElementById('tt-name').textContent = dev.name;
+  document.getElementById('tt-text').textContent = dev.quote;
+  tt.style.display = 'block';
+  document.addEventListener('mousemove', moveTooltip);
+}
+function hideTooltip() {
+  document.getElementById('tooltip').style.display = 'none';
+  document.removeEventListener('mousemove', moveTooltip);
+}
+function moveTooltip(e) {
+  const tt = document.getElementById('tooltip');
+  tt.style.left = (e.clientX + 20) + 'px';
+  tt.style.top  = (e.clientY - 10) + 'px';
+}
+
+/* ══ FLASH SFX ══ */
+function flashSFX(text, color='#F5C842') {
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;top:45%;left:50%;transform:translate(-50%,-50%) rotate(-6deg);
+    font-family:'Bangers',cursive;font-size:4.5rem;letter-spacing:4px;
+    color:${color};-webkit-text-stroke:3px #1A1A1A;text-shadow:5px 5px 0 rgba(26,26,26,.3);
+    pointer-events:none;z-index:9000;`;
+  el.textContent = text;
+  document.body.appendChild(el);
+  gsap.fromTo(el,{scale:.4,opacity:0},{scale:1.1,opacity:1,duration:.25,ease:'back.out(2)'});
+  gsap.to(el,{scale:1.3,opacity:0,duration:.4,delay:.4,ease:'power2.in',onComplete:()=>el.remove()});
+}
+
+/* ══ SEARCH & FILTER ══ */
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('searchGo').addEventListener('click', applyFilters);
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilterType = btn.dataset.filter;
+    applyFilters();
+  });
+});
+
+document.querySelectorAll('.stag').forEach(tag => {
+  tag.addEventListener('click', () => {
+    tag.classList.toggle('active');
+    const skill = tag.dataset.skill;
+    if(activeSkillFilter.includes(skill)) {
+      activeSkillFilter = activeSkillFilter.filter(s=>s!==skill);
+    } else {
+      activeSkillFilter.push(skill);
+    }
+    applyFilters();
+  });
+});
+
+document.querySelectorAll('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    activeSortType = btn.dataset.sort;
+    applyFilters();
+  });
+});
+
+function applyFilters() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  filteredDevs = ALL_DEVELOPERS.filter(dev => {
+    const matchQ = !q || dev.name.toLowerCase().includes(q) ||
+      dev.role.toLowerCase().includes(q) ||
+      dev.skills.some(s=>s.id.toLowerCase().includes(q));
+    const matchSkill = activeSkillFilter.length === 0 ||
+      activeSkillFilter.every(f => dev.skills.some(s=>s.id.toLowerCase().includes(f.toLowerCase())));
+    return matchQ && matchSkill;
+  });
+
+  // sort
+  filteredDevs.sort((a,b) => {
+    if(activeSortType==='match') return b.match - a.match;
+    if(activeSortType==='level') return b.level - a.level;
+    if(activeSortType==='vouches') return b.vouches - a.vouches;
+    return 0;
+  });
+
+  renderCards();
+}
+
+/* ══ HOVER INTERACTIVE on all elements ══ */
+document.querySelectorAll('a,button').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('hov'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('hov'));
+});
+
+/* ══ ENTRANCE ANIMATIONS ══ */
+gsap.from('#discoverHero', {y:-20, opacity:0, duration:.8, ease:'power3.out', delay:.1});
+gsap.from('.search-bar',   {y:10,  opacity:0, duration:.6, ease:'power2.out', delay:.3});
+gsap.from('.skill-tags',   {y:10,  opacity:0, duration:.6, ease:'power2.out', delay:.4});
+gsap.from('.discover-grid',{y:20,  opacity:0, duration:.7, ease:'power2.out', delay:.5});
+</script>
+</body>
+</html>
