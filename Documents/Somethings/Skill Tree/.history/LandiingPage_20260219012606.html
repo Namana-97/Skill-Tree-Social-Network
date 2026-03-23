@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillForge — Your Skills, Your Story</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Permanent+Marker&family=DM+Sans:wght@300;400;500&family=Oswald:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:auto; }
+
+body {
+  background: #F5F0E8;
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ── CUSTOM CURSOR ── */
+#cur {
+  position: fixed; z-index: 9999; pointer-events: none;
+  width: 20px; height: 20px;
+  transform: translate(-50%,-50%);
+  transition: transform .15s;
+}
+#cur svg { width: 100%; height: 100%; }
+body.hov #cur { transform: translate(-50%,-50%) scale(1.8); }
+
+/* ══════════════════════════════════════
+   MANGA PAGE WRAPPER
+══════════════════════════════════════ */
+.manga-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  position: relative;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+  background: #1A1A1A;
+  border-bottom: 4px solid #1A1A1A;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .9rem 2.5rem;
+}
+.logo {
+  font-family: 'Bangers', cursive;
+  font-size: 1.8rem; letter-spacing: 3px;
+  color: #F5F0E8;
+  text-shadow: 3px 3px 0 #E63B3B;
+}
+.nav-links { display: flex; gap: 2rem; list-style: none; align-items: center; }
+.nav-links a {
+  font-family: 'Oswald', sans-serif;
+  font-size: .7rem; letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(245,240,232,.4); text-decoration: none;
+  transition: color .2s; cursor: none;
+}
+.nav-links a:hover { color: #F5C842; }
+.nav-btn {
+  font-family: 'Bangers', cursive;
+  font-size: 1rem; letter-spacing: 2px;
+  background: #E63B3B; color: white; border: 2px solid #F5F0E8;
+  padding: .4rem 1.2rem; cursor: none;
+  box-shadow: 3px 3px 0 #F5C842;
+  transition: transform .15s, box-shadow .15s;
+}
+.nav-btn:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 #F5C842; }
+
+/* ══════════════════════════════════════
+   PANEL SYSTEM
+══════════════════════════════════════ */
+
+/* Every panel has a thick ink border */
+.panel {
+  border: 4px solid #1A1A1A;
+  position: relative;
+  overflow: hidden;
+  background: #F5F0E8;
+}
+
+/* Screentone — dot pattern */
+.screentone::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(26,26,26,.12) 1px, transparent 1px);
+  background-size: 6px 6px;
+  pointer-events: none; z-index: 0;
+}
+.screentone-dense::after {
+  background-size: 4px 4px;
+  opacity: .7;
+}
+.screentone-lines::after {
+  background-image: repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(26,26,26,.06) 3px, rgba(26,26,26,.06) 4px
+  );
+}
+
+/* Speed lines — radiating from center */
+.speed-bg {
+  position: absolute; inset: -50%;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg, transparent 1.8deg,
+    rgba(26,26,26,.045) 1.8deg, rgba(26,26,26,.045) 2deg
+  );
+  pointer-events: none; z-index: 0;
+}
+
+/* Panel diagonal cut */
+.panel-cut {
+  position: absolute;
+  background: #1A1A1A;
+  z-index: 10;
+}
+
+/* Speech bubble */
+.bubble {
+  position: relative;
+  background: white;
+  border: 3px solid #1A1A1A;
+  padding: .7rem 1.2rem;
+  display: inline-block;
+}
+.bubble::after {
+  content: '';
+  position: absolute;
+  border: 12px solid transparent;
+}
+.bubble.bl::after { /* bottom-left tail */
+  top: 100%; left: 20px;
+  border-top-color: #1A1A1A;
+  margin-top: -3px;
+}
+.bubble.bl2::after {
+  top: 100%; left: 20px;
+  border-top-color: white;
+  margin-top: -6px;
+}
+.bubble.br::after { /* bottom-right */
+  top: 100%; right: 20px;
+  border-top-color: #1A1A1A;
+  margin-top: -3px;
+}
+.bubble.br2::after {
+  top: 100%; right: 20px;
+  border-top-color: white;
+  margin-top: -6px;
+}
+
+/* Thought bubble (circles instead of triangle) */
+.think {
+  background: white; border: 3px solid #1A1A1A;
+  border-radius: 20px; padding: .7rem 1.2rem;
+  position: relative;
+}
+.think::before, .think::after { content: ''; position: absolute; border-radius: 50%; background: white; border: 3px solid #1A1A1A; }
+.think::before { width: 14px; height: 14px; bottom: -16px; left: 24px; }
+.think::after { width: 8px; height: 8px; bottom: -26px; left: 20px; }
+
+/* Exclamation / impact bubble */
+.impact {
+  position: absolute;
+  font-family: 'Bangers', cursive;
+  font-size: 2.5rem; letter-spacing: 2px;
+  color: #E63B3B;
+  text-shadow: 3px 3px 0 #1A1A1A;
+  z-index: 20;
+  animation: impact-shake .4s ease;
+}
+@keyframes impact-shake {
+  0%,100%{transform:rotate(-5deg) scale(1)}
+  50%{transform:rotate(5deg) scale(1.1)}
+}
+
+/* Onomatopoeia */
+.sfx {
+  font-family: 'Bangers', cursive;
+  font-size: 4rem; letter-spacing: 3px;
+  -webkit-text-stroke: 3px #1A1A1A;
+  color: #F5C842;
+  text-shadow: 4px 4px 0 #E63B3B, 8px 8px 0 rgba(0,0,0,.15);
+  transform: rotate(-8deg);
+  display: inline-block;
+  line-height: 1;
+}
+.sfx.pink {
+  color: #F2C4CE;
+  -webkit-text-stroke: 3px #1A1A1A;
+  text-shadow: 4px 4px 0 #E8849A, 8px 8px 0 rgba(0,0,0,.15);
+}
+.sfx.blue {
+  color: #B8D8F5;
+  -webkit-text-stroke: 3px #1A1A1A;
+  text-shadow: 4px 4px 0 #5AA0E0, 8px 8px 0 rgba(0,0,0,.15);
+}
+
+/* Chapter header */
+.chapter-header {
+  font-family: 'Bangers', cursive;
+  font-size: .85rem; letter-spacing: 5px;
+  color: white; background: #1A1A1A;
+  display: inline-block; padding: .2rem 1rem;
+  text-transform: uppercase;
+}
+
+/* Panel number */
+.panel-n {
+  position: absolute; bottom: 8px; right: 12px;
+  font-family: 'Oswald', sans-serif;
+  font-size: .65rem; font-weight: 700; letter-spacing: 2px;
+  color: rgba(26,26,26,.2); z-index: 20;
+}
+
+/* ══════════════════════════════════════
+   HERO — MANGA PAGE 1
+══════════════════════════════════════ */
+#hero {
+  padding-top: 70px;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr;
+  grid-template-rows: auto auto;
+  gap: 0;
+  border: 4px solid #1A1A1A;
+}
+
+/* PANEL A — big title panel */
+.panel-a {
+  border-right: 4px solid #1A1A1A;
+  border-bottom: 4px solid #1A1A1A;
+  padding: 3.5rem 3rem;
+  position: relative; overflow: hidden;
+  background: #1A1A1A;
+  min-height: 55vh;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.panel-a .speed-bg { opacity: .4; }
+
+/* BIG manga title */
+.manga-h1 {
+  font-family: 'Bangers', cursive;
+  font-size: clamp(5rem, 11vw, 11rem);
+  line-height: .88; letter-spacing: 3px;
+  color: #F5F0E8;
+  text-shadow: 6px 6px 0 #E63B3B, 12px 12px 0 rgba(230,59,59,.2);
+  position: relative; z-index: 5;
+}
+.manga-h1 .outline {
+  -webkit-text-stroke: 3px #F5F0E8;
+  color: transparent;
+  text-shadow: none;
+}
+.manga-h1 .yellow {
+  color: #F5C842;
+  text-shadow: 4px 4px 0 #1A1A1A;
+}
+
+/* chapter tag */
+.hero-chapter {
+  font-family: 'Oswald', sans-serif;
+  font-size: .7rem; font-weight: 700; letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #F5C842;
+  margin-bottom: 1.5rem;
+  position: relative; z-index: 5;
+}
+
+.hero-bubble-wrap {
+  position: relative; z-index: 5; margin-top: 2.5rem;
+}
+
+/* PANEL B — character / tree panel */
+.panel-b {
+  border-bottom: 4px solid #1A1A1A;
+  position: relative; overflow: hidden;
+  background: #F5F0E8;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 2rem 1.5rem;
+  min-height: 55vh;
+}
+
+/* Manga character silhouette SVG placeholder */
+.char-wrap {
+  position: relative; width: 100%; display: flex;
+  flex-direction: column; align-items: center;
+  z-index: 5;
+}
+.char-name-plate {
+  font-family: 'Bangers', cursive;
+  font-size: .8rem; letter-spacing: 3px;
+  background: #1A1A1A; color: #F5C842;
+  padding: .15rem .8rem; margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* tree card inside panel */
+.mini-tree-card {
+  background: white;
+  border: 3px solid #1A1A1A;
+  padding: 1.2rem;
+  width: 100%;
+  box-shadow: 5px 5px 0 #1A1A1A;
+  position: relative; z-index: 5;
+}
+.mtc-head {
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 2px solid #1A1A1A;
+  padding-bottom: .8rem; margin-bottom: .8rem;
+}
+.mtc-avatar {
+  width: 36px; height: 36px; background: #E63B3B;
+  border: 2px solid #1A1A1A;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bangers', cursive; font-size: .9rem; color: white;
+  box-shadow: 2px 2px 0 #1A1A1A;
+}
+.mtc-name { font-family: 'Oswald', sans-serif; font-size: .85rem; font-weight: 700; display: block; }
+.mtc-role { font-size: .65rem; color: #666; }
+.mtc-lvl {
+  font-family: 'Bangers', cursive; font-size: .9rem; letter-spacing: 2px;
+  background: #F5C842; color: #1A1A1A; padding: .15rem .6rem;
+  border: 2px solid #1A1A1A;
+}
+.tree-svg-mini { width: 100%; height: 170px; }
+.nl { font-family: 'Oswald', sans-serif; font-size: 7.5px; font-weight: 700; fill: white; text-anchor: middle; dominant-baseline: middle; pointer-events: none; letter-spacing: .3px; }
+
+/* PANEL C — descriptor */
+.panel-c {
+  border-right: 4px solid #1A1A1A;
+  padding: 2rem 2.5rem;
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: 2rem;
+  background: #F5C842;
+}
+.panel-c .sfx { font-size: 3.5rem; }
+
+.panel-c-text {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .88rem; line-height: 1.75;
+  color: #1A1A1A; font-style: italic; max-width: 340px;
+}
+.panel-c-text strong { font-family: 'Bangers', cursive; font-size: 1.1rem; letter-spacing: 1px; }
+
+/* PANEL D — stats */
+.panel-d {
+  padding: 2rem;
+  display: flex; flex-direction: column; justify-content: center; gap: 1rem;
+  position: relative; overflow: hidden;
+  background: #E63B3B;
+}
+.stat-row {
+  display: flex; align-items: baseline; gap: .5rem;
+  border-bottom: 2px solid rgba(245,240,232,.15);
+  padding-bottom: .75rem;
+}
+.stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+.stat-n {
+  font-family: 'Bangers', cursive; font-size: 2.8rem; letter-spacing: 2px;
+  color: white; line-height: 1;
+}
+.stat-l { font-family: 'Oswald', sans-serif; font-size: .65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: rgba(245,240,232,.55); }
+
+/* ══════════════════════════════════════
+   HOW IT WORKS — COMIC STRIP
+══════════════════════════════════════ */
+#how {
+  margin-top: 4rem;
+}
+.section-title-bar {
+  background: #1A1A1A;
+  padding: .6rem 1.5rem;
+  display: inline-flex; align-items: center; gap: 1rem;
+  margin-bottom: 0;
+}
+.section-title-bar h2 {
+  font-family: 'Bangers', cursive;
+  font-size: 1.8rem; letter-spacing: 4px;
+  color: #F5F0E8;
+}
+.section-title-bar .pill-tag {
+  font-family: 'Oswald', sans-serif;
+  font-size: .6rem; font-weight: 700; letter-spacing: 2px;
+  background: #F5C842; color: #1A1A1A;
+  padding: .1rem .6rem; text-transform: uppercase;
+}
+
+/* Comic strip — 3 panels side by side */
+.comic-strip {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  border: 4px solid #1A1A1A;
+}
+.cs-panel {
+  border-right: 4px solid #1A1A1A;
+  position: relative; overflow: hidden;
+  padding: 2.5rem 2rem 3rem;
+  min-height: 360px;
+}
+.cs-panel:last-child { border-right: none; }
+
+.cs-panel:nth-child(1) { background: #F5F0E8; }
+.cs-panel:nth-child(2) { background: #1A1A1A; }
+.cs-panel:nth-child(3) { background: #E63B3B; }
+
+/* screentone on first */
+.cs-panel:nth-child(1)::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(26,26,26,.1) 1px, transparent 1px);
+  background-size: 8px 8px;
+  pointer-events: none;
+}
+/* speed lines on second */
+.cs-panel:nth-child(2) .speed-bg { opacity: .15; }
+
+.cs-num {
+  font-family: 'Bangers', cursive; font-size: 5rem; letter-spacing: -2px;
+  line-height: 1;
+  position: absolute; top: .5rem; right: 1rem;
+}
+.cs-panel:nth-child(1) .cs-num { color: rgba(26,26,26,.08); }
+.cs-panel:nth-child(2) .cs-num { color: rgba(245,240,232,.06); }
+.cs-panel:nth-child(3) .cs-num { color: rgba(245,240,232,.15); }
+
+.cs-icon { font-size: 2.8rem; margin-bottom: 1.2rem; display: block; }
+
+.cs-h {
+  font-family: 'Bangers', cursive;
+  font-size: 2rem; letter-spacing: 2px; line-height: 1.05;
+  margin-bottom: .75rem;
+}
+.cs-panel:nth-child(1) .cs-h { color: #1A1A1A; text-shadow: 2px 2px 0 #F5C842; }
+.cs-panel:nth-child(2) .cs-h { color: #F5C842; text-shadow: 2px 2px 0 #E63B3B; }
+.cs-panel:nth-child(3) .cs-h { color: white; text-shadow: 2px 2px 0 #1A1A1A; }
+
+.cs-p { font-size: .85rem; line-height: 1.75; }
+.cs-panel:nth-child(1) .cs-p { color: #444; }
+.cs-panel:nth-child(2) .cs-p { color: rgba(245,240,232,.5); }
+.cs-panel:nth-child(3) .cs-p { color: rgba(245,240,232,.8); }
+
+/* speech bubble inside panel */
+.cs-bubble {
+  position: absolute; bottom: 1.5rem; left: 1.5rem; right: 1.5rem;
+  background: white; border: 2px solid #1A1A1A;
+  padding: .5rem .8rem;
+  font-family: 'Permanent Marker', cursive;
+  font-size: .75rem; color: #1A1A1A; line-height: 1.4;
+}
+.cs-bubble::before {
+  content: ''; position: absolute;
+  top: -10px; left: 20px;
+  border: 8px solid transparent;
+  border-bottom-color: #1A1A1A;
+}
+.cs-bubble::after {
+  content: ''; position: absolute;
+  top: -7px; left: 22px;
+  border: 7px solid transparent;
+  border-bottom-color: white;
+}
+.cs-panel:nth-child(2) .cs-bubble { background: #2A2A2A; border-color: rgba(245,240,232,.3); color: rgba(245,240,232,.7); }
+.cs-panel:nth-child(2) .cs-bubble::after { border-bottom-color: #2A2A2A; }
+.cs-panel:nth-child(3) .cs-bubble { background: #C42B2B; border-color: rgba(245,240,232,.4); color: rgba(245,240,232,.9); }
+.cs-panel:nth-child(3) .cs-bubble::after { border-bottom-color: #C42B2B; }
+
+/* ══════════════════════════════════════
+   FEATURE SPREAD — MANGA DOUBLE PAGE
+══════════════════════════════════════ */
+#features {
+  margin-top: 4rem;
+}
+
+.feat-spread {
+  border: 4px solid #1A1A1A;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr;
+  grid-template-rows: auto auto;
+}
+
+.feat-big {
+  grid-row: span 2;
+  border-right: 4px solid #1A1A1A;
+  background: #1A1A1A;
+  padding: 4rem 3rem;
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.feat-big .speed-bg { opacity: .2; }
+.feat-big-h {
+  font-family: 'Bangers', cursive;
+  font-size: clamp(2.5rem, 4vw, 4rem);
+  letter-spacing: 3px; line-height: .95;
+  color: #F5F0E8;
+  text-shadow: 4px 4px 0 #E63B3B;
+  position: relative; z-index: 2;
+}
+.feat-big-h em { font-style: normal; color: #F5C842; text-shadow: 3px 3px 0 #1A1A1A; }
+.feat-big-p {
+  font-size: .88rem; line-height: 1.8;
+  color: rgba(245,240,232,.45); position: relative; z-index: 2;
+  margin-top: 1.2rem;
+}
+.feat-big-sfx { position: absolute; bottom: 2rem; right: 2rem; z-index: 1; opacity: .2; }
+.feat-big-sfx .sfx { font-size: 6rem; -webkit-text-stroke-color: #F5C842; }
+
+.feat-sm {
+  border-bottom: 4px solid #1A1A1A;
+  padding: 2.5rem;
+  position: relative; overflow: hidden;
+  transition: background .25s;
+}
+.feat-sm:last-child, .feat-sm:nth-last-child(2) { border-bottom: none; }
+.feat-sm:nth-child(even of .feat-sm) { border-left: 4px solid #1A1A1A; }
+.feat-sm:nth-child(2) { border-left: none; }
+.feat-sm:nth-child(3) { border-left: 4px solid #1A1A1A; }
+.feat-sm:nth-child(4) { border-left: none; border-bottom: none; }
+.feat-sm:nth-child(5) { border-left: 4px solid #1A1A1A; border-bottom: none; }
+
+.feat-sm:hover { background: #FEFAF0; }
+.feat-sm h3 {
+  font-family: 'Bangers', cursive; font-size: 1.6rem; letter-spacing: 2px;
+  color: #1A1A1A; margin-bottom: .5rem;
+  text-shadow: 1.5px 1.5px 0 #F5C842;
+}
+.feat-sm p { font-size: .82rem; line-height: 1.75; color: #555; }
+.feat-sm .f-icon {
+  font-size: 2rem; margin-bottom: 1rem; display: block;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.feat-sm:hover .f-icon { transform: scale(1.2) rotate(-8deg); }
+.feat-sm .f-tag {
+  font-family: 'Oswald', sans-serif;
+  font-size: .6rem; font-weight: 700; letter-spacing: 2px;
+  color: #E63B3B; text-transform: uppercase; margin-bottom: 1.2rem;
+  display: block;
+}
+
+/* ══════════════════════════════════════
+   TESTIMONIAL — MANGA SPREAD
+══════════════════════════════════════ */
+#testimonials {
+  margin-top: 4rem;
+  border: 4px solid #1A1A1A;
+  background: #1A1A1A;
+  position: relative; overflow: hidden;
+  padding: 4rem 3rem;
+}
+#testimonials .speed-bg { opacity: .1; }
+.test-title {
+  font-family: 'Bangers', cursive;
+  font-size: clamp(3rem, 6vw, 6rem);
+  letter-spacing: 4px; line-height: .95;
+  color: #F5F0E8;
+  text-shadow: 5px 5px 0 #E63B3B;
+  margin-bottom: 3rem; position: relative; z-index: 2;
+}
+.test-title .yellow { color: #F5C842; text-shadow: 3px 3px 0 #1A1A1A; }
+
+.speech-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 1.5rem;
+  position: relative; z-index: 2;
+}
+.speech-card {
+  position: relative;
+}
+.speech-bubble-big {
+  background: white; border: 3px solid #1A1A1A;
+  padding: 1.5rem;
+  position: relative;
+  box-shadow: 5px 5px 0 rgba(245,240,232,.1);
+  transition: transform .25s, box-shadow .25s;
+}
+.speech-bubble-big:hover { transform: translate(-3px,-3px); box-shadow: 8px 8px 0 rgba(245,240,232,.15); }
+.speech-bubble-big::after {
+  content: ''; position: absolute;
+  bottom: -20px; left: 28px;
+  border: 14px solid transparent;
+  border-top: 14px solid #1A1A1A;
+}
+.speech-bubble-big::before {
+  content: ''; position: absolute;
+  bottom: -15px; left: 31px;
+  border: 11px solid transparent;
+  border-top: 11px solid white;
+  z-index: 1;
+}
+.sb-text {
+  font-family: 'Permanent Marker', cursive;
+  font-size: .82rem; line-height: 1.7; color: #1A1A1A;
+  margin-bottom: .5rem;
+}
+.speech-card .speaker {
+  margin-top: 1.5rem;
+  display: flex; align-items: center; gap: .7rem;
+}
+.sp-av {
+  width: 38px; height: 38px; border: 3px solid #1A1A1A;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bangers', cursive; font-size: .9rem; letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.speech-card:nth-child(1) .sp-av { background: #E63B3B; color: white; }
+.speech-card:nth-child(2) .sp-av { background: #5C3FB0; color: white; }
+.speech-card:nth-child(3) .sp-av { background: #F5C842; color: #1A1A1A; }
+.sp-name { font-family: 'Bangers', cursive; font-size: 1rem; letter-spacing: 1px; color: #F5F0E8; display: block; }
+.sp-role { font-size: .68rem; color: rgba(245,240,232,.3); letter-spacing: .5px; }
+
+/* ══════════════════════════════════════
+   LIVE FEED — TICKER PANEL
+══════════════════════════════════════ */
+.ticker-panel {
+  border: 4px solid #1A1A1A;
+  border-top: none;
+  overflow: hidden; background: #F5C842;
+}
+.ticker-track { display: flex; width: max-content; animation: marq 22s linear infinite; }
+.ti {
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: .9rem 2.5rem; white-space: nowrap;
+  border-right: 3px solid rgba(26,26,26,.15);
+}
+.ti-who { font-family: 'Bangers', cursive; font-size: 1rem; letter-spacing: 2px; color: #E63B3B; }
+.ti-what { font-family: 'Oswald', sans-serif; font-size: .72rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(26,26,26,.55); }
+.ti-dot { font-size: .6rem; color: rgba(26,26,26,.3); }
+@keyframes marq { from{transform:translateX(0)}to{transform:translateX(-50%)} }
+
+/* ══════════════════════════════════════
+   CTA PANEL — FINAL BOSS
+══════════════════════════════════════ */
+#cta {
+  margin-top: 4rem;
+  border: 4px solid #1A1A1A;
+  position: relative; overflow: hidden;
+  display: grid; grid-template-columns: 1.4fr 1fr;
+  min-height: 60vh;
+}
+
+.cta-left {
+  background: #E63B3B;
+  padding: 5rem 4rem;
+  position: relative; overflow: hidden;
+  border-right: 4px solid #1A1A1A;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.cta-left .speed-bg { opacity: .12; }
+.cta-big-sfx {
+  position: absolute; top: -1rem; right: -1rem;
+  font-family: 'Bangers', cursive;
+  font-size: 14rem; line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 3px rgba(245,240,232,.08);
+  pointer-events: none; z-index: 0;
+}
+.cta-eyebrow {
+  font-family: 'Oswald', sans-serif; font-size: .7rem; font-weight: 700;
+  letter-spacing: 4px; text-transform: uppercase; color: rgba(245,240,232,.5);
+  margin-bottom: 1rem; position: relative; z-index: 2;
+}
+.cta-h {
+  font-family: 'Bangers', cursive;
+  font-size: clamp(3.5rem, 7vw, 7rem);
+  letter-spacing: 3px; line-height: .9;
+  color: white;
+  text-shadow: 5px 5px 0 #1A1A1A;
+  position: relative; z-index: 2;
+  margin-bottom: 1.5rem;
+}
+.cta-h .outline {
+  -webkit-text-stroke: 3px white; color: transparent; text-shadow: none;
+}
+.cta-sub {
+  font-size: .9rem; line-height: 1.7; font-style: italic;
+  color: rgba(245,240,232,.65); max-width: 360px;
+  position: relative; z-index: 2; margin-bottom: 2.5rem;
+}
+.cta-btns { display: flex; gap: 1rem; position: relative; z-index: 2; flex-wrap: wrap; }
+.cta-btn-main {
+  font-family: 'Bangers', cursive; font-size: 1.4rem; letter-spacing: 3px;
+  background: #F5C842; color: #1A1A1A; border: 3px solid #1A1A1A;
+  padding: .8rem 2.5rem; cursor: none;
+  box-shadow: 5px 5px 0 #1A1A1A;
+  transition: transform .15s, box-shadow .15s;
+}
+.cta-btn-main:hover { transform: translate(-3px,-3px); box-shadow: 8px 8px 0 #1A1A1A; }
+.cta-btn-sec {
+  font-family: 'Bangers', cursive; font-size: 1.4rem; letter-spacing: 3px;
+  background: transparent; color: white; border: 3px solid white;
+  padding: .8rem 2rem; cursor: none;
+  transition: background .2s, color .2s;
+}
+.cta-btn-sec:hover { background: white; color: #E63B3B; }
+
+.cta-right {
+  background: #1A1A1A;
+  padding: 3rem 2.5rem;
+  display: flex; flex-direction: column; justify-content: center; gap: 1.5rem;
+  position: relative; overflow: hidden;
+}
+.cta-right .speed-bg { opacity: .08; }
+/* Feature checklist in manga style */
+.check-item {
+  display: flex; align-items: flex-start; gap: .75rem;
+  position: relative; z-index: 2;
+}
+.check-box {
+  width: 24px; height: 24px; border: 2.5px solid #F5C842;
+  flex-shrink: 0; margin-top: .1rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.check-box::after { content: '✓'; color: #F5C842; font-weight: 700; font-size: .85rem; }
+.check-text {
+  font-family: 'Oswald', sans-serif; font-size: .85rem; font-weight: 600;
+  letter-spacing: .5px; color: rgba(245,240,232,.7); line-height: 1.5;
+}
+.check-text strong { color: #F5C842; font-weight: 700; display: block; font-size: .95rem; }
+.cta-right-bottom {
+  border-top: 1px solid rgba(245,240,232,.08);
+  padding-top: 1.5rem;
+  position: relative; z-index: 2;
+}
+.free-tag {
+  font-family: 'Bangers', cursive; font-size: 2.5rem; letter-spacing: 2px;
+  color: white; text-shadow: 3px 3px 0 #E63B3B;
+}
+.free-sub { font-size: .75rem; color: rgba(245,240,232,.3); letter-spacing: 1px; margin-top: .2rem; }
+
+/* ══════════════════════════════════════
+   FOOTER
+══════════════════════════════════════ */
+footer {
+  margin-top: 0;
+  background: #1A1A1A;
+  border: 4px solid #1A1A1A;
+  border-top: none;
+  padding: 2rem 2.5rem;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.f-logo {
+  font-family: 'Bangers', cursive; font-size: 1.6rem; letter-spacing: 3px;
+  color: #F5C842; text-shadow: 2px 2px 0 #E63B3B;
+}
+footer p { font-size: .7rem; color: rgba(245,240,232,.2); letter-spacing: 1px; font-family: 'Oswald', sans-serif; }
+
+/* PAGE BORDER decoration */
+.page-edge {
+  height: 6px; background: repeating-linear-gradient(90deg,
+    #E63B3B 0, #E63B3B 40px, #F5C842 40px, #F5C842 80px,
+    #1A1A1A 80px, #1A1A1A 120px
+  );
+}
+
+/* REVEAL */
+.sr { opacity:0; transform:translateY(30px); transition: opacity .7s ease, transform .7s ease; }
+.sl { opacity:0; transform:translateX(-30px); transition: opacity .7s ease, transform .7s ease; }
+.sr.vis, .sl.vis { opacity:1; transform:translate(0); }
+.d1{transition-delay:.1s} .d2{transition-delay:.2s} .d3{transition-delay:.3s}
+
+@media(max-width:900px){
+  .hero-grid{grid-template-columns:1fr;}
+  .panel-a{min-height:50vh;}
+  .panel-b{display:none;}
+  .panel-c{flex-direction:column;gap:1rem;}
+  .panel-d{flex-direction:row;flex-wrap:wrap;}
+  .comic-strip{grid-template-columns:1fr;}
+  .cs-panel{border-right:none;border-bottom:4px solid #1A1A1A;}
+  .cs-panel:last-child{border-bottom:none;}
+  .feat-spread{grid-template-columns:1fr;}
+  .feat-big{grid-row:span 1;}
+  .speech-grid{grid-template-columns:1fr;}
+  #cta{grid-template-columns:1fr;}
+  .cta-left{border-right:none;border-bottom:4px solid #1A1A1A;}
+  footer{flex-direction:column;gap:1rem;text-align:center;}
+  nav{padding:.8rem 1.5rem;}
+  .nav-links a{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- custom cursor: crosshair/pen nib feel -->
+<div id="cur">
+  <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="10" cy="10" r="4" fill="#E63B3B"/>
+    <circle cx="10" cy="10" r="8" stroke="#1A1A1A" stroke-width="2"/>
+  </svg>
+</div>
+
+<div class="page-edge"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">⬡ SkillForge</div>
+  <ul class="nav-links">
+    <li><a href="#how">HOW IT WORKS</a></li>
+    <li><a href="#features">FEATURES</a></li>
+    <li><a href="#testimonials">COMMUNITY</a></li>
+    <li><button class="nav-btn">START NOW</button></li>
+  </ul>
+</nav>
+
+<div class="manga-page">
+
+  <!-- ══ HERO ══ -->
+  <section id="hero">
+    <div class="hero-grid">
+
+      <!-- PANEL A — Big title -->
+      <div class="panel-a">
+        <div class="speed-bg"></div>
+
+        <div class="hero-chapter">✦ CHAPTER 001 — ORIGIN STORY</div>
+
+        <h1 class="manga-h1" id="heroTitle">
+          LEVEL<br>
+          <span class="yellow">UP</span><br>
+          <span class="outline">YOUR</span><br>
+          STORY
+        </h1>
+
+        <div class="hero-bubble-wrap">
+          <!-- speech bubble for descriptor -->
+          <div style="position:relative;display:inline-block;">
+            <div class="bubble bl" style="max-width:380px;">
+              <span class="bubble bl2"></span>
+              <p style="font-family:'Permanent Marker',cursive;font-size:.85rem;line-height:1.6;color:#1A1A1A;">
+                Stop listing skills on a boring resume. Build a <strong>living skill tree</strong>, level up through real work, and find the people who were always meant to find you.
+              </p>
+            </div>
+          </div>
+
+          <div style="margin-top:2rem;display:flex;gap:1rem;flex-wrap:wrap;">
+            <button class="nav-btn" style="font-size:1.1rem;padding:.6rem 2rem;">BUILD YOUR TREE →</button>
+            <a href="#how" style="font-family:'Bangers',cursive;font-size:1.1rem;letter-spacing:2px;color:rgba(245,240,232,.4);text-decoration:none;display:flex;align-items:center;cursor:none;transition:color .2s;">SEE HOW ↓</a>
+          </div>
+        </div>
+
+        <span class="panel-n">PAGE 1</span>
+      </div>
+
+      <!-- PANEL B — Skill tree card -->
+      <div class="panel-b screentone">
+        <div class="speed-bg" style="opacity:.06;"></div>
+
+        <span class="impact" style="top:1rem;right:1rem;font-size:1.8rem;">LEVEL 34!</span>
+
+        <div class="char-name-plate">▶  Namana Kanchan ◀</div>
+
+        <div class="mini-tree-card">
+          <div class="mtc-head">
+            <div style="display:flex;align-items:center;gap:.6rem;">
+              <div class="mtc-avatar">NK</div>
+              <div>
+                <span class="mtc-name">Namana Kanchan</span>
+                <span class="mtc-role">Software Engineer</span>
+              </div>
+            </div>
+            <span class="mtc-lvl">LVL 34</span>
+          </div>
+
+          <svg class="tree-svg-mini" viewBox="0 0 280 165" fill="none">
+            <line x1="140" y1="30" x2="65" y2="85" stroke="#1A1A1A" stroke-width="1.5" stroke-opacity=".15"/>
+            <line x1="140" y1="30" x2="140" y2="92" stroke="#1A1A1A" stroke-width="1.5" stroke-opacity=".15"/>
+            <line x1="140" y1="30" x2="215" y2="85" stroke="#1A1A1A" stroke-width="1.5" stroke-opacity=".15"/>
+            <line x1="65" y1="85" x2="30" y2="148" stroke="#1A1A1A" stroke-width="1.5" stroke-opacity=".12"/>
+            <line x1="65" y1="85" x2="96" y2="148" stroke="#1A1A1A" stroke-width="1.5" stroke-opacity=".12"/>
+            <line x1="215" y1="85" x2="184" y2="148" stroke="#1A1A1A" stroke-width="1.5" stroke-opacity=".12"/>
+            <line x1="215" y1="85" x2="250" y2="148" stroke="#1A1A1A" stroke-width="1.5" stroke-opacity=".12"/>
+            <!-- pulse -->
+            <circle cx="140" cy="30" r="26" fill="#E63B3B" opacity=".08"><animate attributeName="r" values="20;30;20" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" values=".08;0;.08" dur="3s" repeatCount="indefinite"/></circle>
+            <circle cx="140" cy="30" r="20" fill="#E63B3B" stroke="#1A1A1A" stroke-width="2"/>
+            <text class="nl" x="140" y="30">JS</text>
+            <!-- vouch -->
+            <circle cx="158" cy="13" r="9" fill="#F5C842" stroke="#1A1A1A" stroke-width="1.5"/>
+            <text x="158" y="17" text-anchor="middle" fill="#1A1A1A" font-size="7.5" font-weight="800" font-family="Oswald">12</text>
+            <circle cx="65" cy="85" r="15" fill="#5C3FB0" stroke="#1A1A1A" stroke-width="2"/>
+            <text class="nl" x="65" y="85" font-size="7">React</text>
+            <circle cx="140" cy="92" r="11" fill="#1A7FC2" stroke="#1A1A1A" stroke-width="1.5"/>
+            <text class="nl" x="140" y="92" font-size="7">Node</text>
+            <circle cx="215" cy="85" r="15" fill="#2A9B7A" stroke="#1A1A1A" stroke-width="2"/>
+            <text class="nl" x="215" y="85" font-size="7">CSS</text>
+            <circle cx="30" cy="148" r="10" fill="#E63B3B" stroke="#1A1A1A" stroke-width="1.5"/><text class="nl" x="30" y="148" font-size="7">Redux</text>
+            <circle cx="96" cy="148" r="9" fill="#5C3FB0" stroke="#1A1A1A" stroke-width="1.5"/><text class="nl" x="96" y="148" font-size="7">Next</text>
+            <circle cx="184" cy="148" r="9" fill="#2A9B7A" stroke="#1A1A1A" stroke-width="1.5"/><text class="nl" x="184" y="148" font-size="6.5">Tailwind</text>
+            <circle cx="250" cy="148" r="9" fill="#1A7FC2" stroke="#1A1A1A" stroke-width="1.5"/><text class="nl" x="250" y="148" font-size="7">SQL</text>
+          </svg>
+        </div>
+
+        <!-- small thought bubble -->
+        <div class="think" style="margin-top:1.2rem;font-family:'Permanent Marker',cursive;font-size:.72rem;color:#1A1A1A;max-width:220px;">
+          12 vouches this month... 👀
+        </div>
+
+        <span class="panel-n">PAGE 1</span>
+      </div>
+
+      <!-- PANEL C — tagline -->
+      <div class="panel-c">
+        <div class="sfx pink" style="flex-shrink:0;">GROW!</div>
+        <p class="panel-c-text">
+          <strong>Every skill. Every level. Every vouch.</strong><br>
+          Your expertise laid bare in a visual graph that speaks louder than any resume ever could.
+        </p>
+        <span class="panel-n">PAGE 1</span>
+      </div>
+
+      <!-- PANEL D — stats -->
+      <div class="panel-d screentone-dense">
+        <div class="stat-row">
+          <span class="stat-n" id="s1">0</span>
+          <span class="stat-l">K+ trees</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-n" id="s2">0</span>
+          <span class="stat-l">K+ vouches</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-n" id="s3">0</span>
+          <span class="stat-l">+ skills</span>
+        </div>
+      </div>
+
+    </div><!-- /hero-grid -->
+  </section>
+
+  <!-- ══ TICKER ══ -->
+  <div class="ticker-panel">
+    <div class="ticker-track">
+      <div class="ti"><span class="ti-who">MAYA S.</span><span class="ti-dot">▶</span><span class="ti-what">Vouched React · Lv.4</span></div>
+      <div class="ti"><span class="ti-who">JAMES K.</span><span class="ti-dot">▶</span><span class="ti-what">Leveled up Python · Lv.5</span></div>
+      <div class="ti"><span class="ti-who">PRIYA M.</span><span class="ti-dot">▶</span><span class="ti-what">Found complement match</span></div>
+      <div class="ti"><span class="ti-who">ALEX T.</span><span class="ti-dot">▶</span><span class="ti-what">Vouched System Design · Lv.3</span></div>
+      <div class="ti"><span class="ti-who">SARA L.</span><span class="ti-dot">▶</span><span class="ti-what">Planted first skill tree</span></div>
+      <div class="ti"><span class="ti-who">RAVI N.</span><span class="ti-dot">▶</span><span class="ti-what">Connected 3 matches</span></div>
+      <!-- dup -->
+      <div class="ti"><span class="ti-who">MAYA S.</span><span class="ti-dot">▶</span><span class="ti-what">Vouched React · Lv.4</span></div>
+      <div class="ti"><span class="ti-who">JAMES K.</span><span class="ti-dot">▶</span><span class="ti-what">Leveled up Python · Lv.5</span></div>
+      <div class="ti"><span class="ti-who">PRIYA M.</span><span class="ti-dot">▶</span><span class="ti-what">Found complement match</span></div>
+      <div class="ti"><span class="ti-how">ALEX T.</span><span class="ti-dot">▶</span><span class="ti-what">Vouched System Design · Lv.3</span></div>
+      <div class="ti"><span class="ti-who">SARA L.</span><span class="ti-dot">▶</span><span class="ti-what">Planted first skill tree</span></div>
+      <div class="ti"><span class="ti-who">RAVI N.</span><span class="ti-dot">▶</span><span class="ti-what">Connected 3 matches</span></div>
+    </div>
+  </div>
+
+  <!-- ══ HOW IT WORKS ══ -->
+  <section id="how" style="margin-top:4rem;">
+    <div class="section-title-bar">
+      <h2>HOW IT WORKS</h2>
+      <span class="pill-tag">Chapter 002</span>
+    </div>
+    <div class="comic-strip sr">
+      <div class="cs-panel">
+        <div class="speed-bg"></div>
+        <span class="cs-num">01</span>
+        <span class="cs-icon">🌱</span>
+        <h3 class="cs-h">PLANT YOUR TREE</h3>
+        <p class="cs-p">Add skills, connect related nodes, set your level, attach proof — repos, projects, live demos. Shape it yourself.</p>
+        <div class="cs-bubble">"This is my skill tree. There are many like it, but this one is mine."</div>
+      </div>
+      <div class="cs-panel">
+        <div class="speed-bg"></div>
+        <span class="cs-num">02</span>
+        <span class="cs-icon">⚡</span>
+        <h3 class="cs-h">LEVEL UP & GET VOUCHED</h3>
+        <p class="cs-p">Update your levels as you grow. Peers vouch for your skills — only if they hold them too. Real endorsements only.</p>
+        <div class="cs-bubble">"You vouched for my React skills? That actually means something."</div>
+      </div>
+      <div class="cs-panel">
+        <div class="speed-bg"></div>
+        <span class="cs-num">03</span>
+        <span class="cs-icon">🔗</span>
+        <h3 class="cs-h">FIND YOUR COMPLEMENT</h3>
+        <p class="cs-p">Graph algorithm finds people whose trees fill your gaps. Co-founders, dream teams, mentors who've walked your path.</p>
+        <div class="cs-bubble">"94% match... we were literally made for each other's skill gaps."</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FEATURES ══ -->
+  <section id="features" style="margin-top:4rem;">
+    <div class="section-title-bar">
+      <h2>FEATURES</h2>
+      <span class="pill-tag">Chapter 003</span>
+    </div>
+    <div class="feat-spread sr">
+      <div class="feat-big">
+        <div class="speed-bg"></div>
+        <div>
+          <div style="font-family:'Oswald',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:3px;color:#E63B3B;margin-bottom:1rem;position:relative;z-index:2;">F — 01 / CORE</div>
+          <h3 class="feat-big-h">A GRAPH THAT<br><em>LIVES</em> &<br>BREATHES</h3>
+          <p class="feat-big-p">Your tree isn't static. Every project, every vouch, every new skill ripples through your graph. A living record of your evolution — not a frozen snapshot in time.</p>
+        </div>
+        <div class="feat-big-sfx"><span class="sfx" style="-webkit-text-stroke-color:#F5C842;color:transparent;font-size:7rem;opacity:.25;">GROW</span></div>
+        <!-- mini dark tree -->
+        <svg viewBox="0 0 280 130" fill="none" style="width:90%;position:relative;z-index:2;margin-top:1.5rem">
+          <line x1="140" y1="22" x2="65" y2="68" stroke="white" stroke-opacity=".08" stroke-width="1.5"/>
+          <line x1="140" y1="22" x2="140" y2="75" stroke="white" stroke-opacity=".08" stroke-width="1.5"/>
+          <line x1="140" y1="22" x2="215" y2="68" stroke="white" stroke-opacity=".08" stroke-width="1.5"/>
+          <line x1="65" y1="68" x2="33" y2="112" stroke="white" stroke-opacity=".07" stroke-width="1.5"/>
+          <line x1="65" y1="68" x2="92" y2="112" stroke="white" stroke-opacity=".07" stroke-width="1.5"/>
+          <line x1="215" y1="68" x2="188" y2="112" stroke="white" stroke-opacity=".07" stroke-width="1.5"/>
+          <line x1="215" y1="68" x2="247" y2="112" stroke="white" stroke-opacity=".07" stroke-width="1.5"/>
+          <circle cx="140" cy="22" r="18" fill="#E63B3B"/>
+          <text x="140" y="26" text-anchor="middle" fill="white" font-size="7.5" font-weight="700" font-family="Oswald" letter-spacing="1">Python</text>
+          <circle cx="65" cy="68" r="13" fill="#5C3FB0"/><text x="65" y="72" text-anchor="middle" fill="white" font-size="7" font-weight="700" font-family="Oswald">ML</text>
+          <circle cx="140" cy="75" r="11" fill="#1A7FC2"/><text x="140" y="79" text-anchor="middle" fill="white" font-size="7" font-weight="700" font-family="Oswald">API</text>
+          <circle cx="215" cy="68" r="13" fill="#2A9B7A"/><text x="215" y="72" text-anchor="middle" fill="white" font-size="7" font-weight="700" font-family="Oswald">SQL</text>
+          <circle cx="33" cy="112" r="9" fill="#E63B3B" opacity=".8"/><text x="33" y="116" text-anchor="middle" fill="white" font-size="6.5" font-weight="700" font-family="Oswald">Torch</text>
+          <circle cx="92" cy="112" r="8" fill="#5C3FB0" opacity=".8"/><text x="92" y="116" text-anchor="middle" fill="white" font-size="6.5" font-weight="700" font-family="Oswald">NLP</text>
+          <circle cx="188" cy="112" r="8" fill="#2A9B7A" opacity=".8"/><text x="188" y="116" text-anchor="middle" fill="white" font-size="6.5" font-weight="700" font-family="Oswald">PG</text>
+          <circle cx="247" cy="112" r="8" fill="#1A7FC2" opacity=".8"/><text x="247" y="116" text-anchor="middle" fill="white" font-size="6.5" font-weight="700" font-family="Oswald">REST</text>
+        </svg>
+      </div>
+
+      <div class="feat-sm d1">
+        <span class="f-tag">F — 02</span>
+        <span class="f-icon">🎯</span>
+        <h3>COMPLEMENT MATCH</h3>
+        <p>Graph-based algorithm finds people whose trees fill exactly your gaps. Perfect for co-founders, team building, and mentors.</p>
+      </div>
+      <div class="feat-sm d2" style="border-left:4px solid #1A1A1A">
+        <span class="f-tag">F — 03</span>
+        <span class="f-icon">🏅</span>
+        <h3>REAL VOUCHES</h3>
+        <p>You can only vouch for a skill you hold at an equal or higher level. No empty endorsements. Every vouch is earned.</p>
+      </div>
+      <div class="feat-sm d1" style="border-top:4px solid #1A1A1A">
+        <span class="f-tag">F — 04</span>
+        <span class="f-icon">📊</span>
+        <h3>LEVEL SYSTEM</h3>
+        <p>5 levels per skill. Attach proof to each. Your tree tells the full story of how deep your expertise actually goes.</p>
+      </div>
+      <div class="feat-sm d2" style="border-top:4px solid #1A1A1A;border-left:4px solid #1A1A1A">
+        <span class="f-tag">F — 05</span>
+        <span class="f-icon">🌐</span>
+        <h3>DISCOVERY FEED</h3>
+        <p>Trending skills, fastest growing trees, top vouched devs this week. Stay wired into what the community is building.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ TESTIMONIALS ══ -->
+  <section id="testimonials" class="sr">
+    <div class="speed-bg"></div>
+    <div class="section-title-bar" style="margin-bottom:2.5rem;">
+      <h2>COMMUNITY SPEAKS</h2>
+      <span class="pill-tag">Chapter 004</span>
+    </div>
+    <div class="speech-grid">
+      <div class="speech-card sl d1">
+        <div class="speech-bubble-big">
+          <p class="sb-text">Finally a way to show my skills that doesn't look like every other LinkedIn profile. My tree got me three interview requests in a single month.</p>
+        </div>
+        <div class="speaker">
+          <div class="sp-av">SR</div>
+          <div>
+            <span class="sp-name">SOFIA R.</span>
+            <span class="sp-role">Frontend Engineer</span>
+          </div>
+        </div>
+      </div>
+      <div class="speech-card sr d2">
+        <div class="speech-bubble-big">
+          <p class="sb-text">The complement matching is genuinely magical. Found my co-founder through SkillForge — his backend depth fills exactly what I was missing.</p>
+        </div>
+        <div class="speaker">
+          <div class="sp-av">MK</div>
+          <div>
+            <span class="sp-name">MARCUS K.</span>
+            <span class="sp-role">ML Researcher & Founder</span>
+          </div>
+        </div>
+      </div>
+      <div class="speech-card sl d3">
+        <div class="speech-bubble-big">
+          <p class="sb-text">Instead of posting job descriptions, I shared our skill gaps. The right people found us in 48 hours. I haven't posted a listing since.</p>
+        </div>
+        <div class="speaker">
+          <div class="sp-av">JP</div>
+          <div>
+            <span class="sp-name">JAMIE P.</span>
+            <span class="sp-role">CTO, Early-Stage Startup</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CTA ══ -->
+  <section id="cta" class="sr">
+    <div class="cta-left">
+      <div class="speed-bg"></div>
+      <div class="cta-big-sfx">!!</div>
+      <div class="cta-eyebrow">✦ FINAL CHAPTER — BEGIN YOUR STORY</div>
+      <h2 class="cta-h">
+        STOP<br>
+        <span class="outline">LISTING.</span><br>
+        START<br>
+        SHOWING.
+      </h2>
+      <p class="cta-sub">Your skills deserve a stage, not a spreadsheet. Build your tree in under 5 minutes and let it speak for itself.</p>
+      <div class="cta-btns">
+        <button class="cta-btn-main">⚡ BUILD YOUR TREE</button>
+        <button class="cta-btn-sec">SEE EXAMPLES</button>
+      </div>
+    </div>
+    <div class="cta-right">
+      <div class="speed-bg"></div>
+      <div style="font-family:'Bangers',cursive;font-size:1rem;letter-spacing:3px;color:#F5C842;margin-bottom:1.5rem;position:relative;z-index:2;">WHAT YOU GET</div>
+      <div class="check-item">
+        <div class="check-box"></div>
+        <div class="check-text"><strong>Visual skill tree</strong>Build and share your expertise graph</div>
+      </div>
+      <div class="check-item">
+        <div class="check-box"></div>
+        <div class="check-text"><strong>Peer vouching</strong>Real endorsements that mean something</div>
+      </div>
+      <div class="check-item">
+        <div class="check-box"></div>
+        <div class="check-text"><strong>Complement matching</strong>Find your dream team algorithmically</div>
+      </div>
+      <div class="check-item">
+        <div class="check-box"></div>
+        <div class="check-text"><strong>Discovery feed</strong>See who's leveling up in your field</div>
+      </div>
+      <div class="cta-right-bottom">
+        <div class="free-tag">FREE FOREVER</div>
+        <div class="free-sub">No credit card. No BS. Just your story.</div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /manga-page -->
+
+<footer>
+  <div class="f-logo">⬡ SKILLFORGE</div>
+  <p>BUILT FOR PEOPLE WHO BUILD THINGS</p>
+  <p>© 2025 SKILLFORGE</p>
+</footer>
+
+<div class="page-edge"></div>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+/* CURSOR */
+const cur = document.getElementById('cur');
+let mx=0, my=0;
+document.addEventListener('mousemove', e => {
+  mx=e.clientX; my=e.clientY;
+  gsap.to(cur, { left:mx, top:my, duration:0.05 });
+});
+document.querySelectorAll('a,button,.feat-sm,.speech-bubble-big,.cs-panel').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('hov'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('hov'));
+});
+
+/* HERO ENTRANCE */
+const tl = gsap.timeline({ delay:.15 });
+tl.from('#heroTitle', { y:60, opacity:0, duration:1, ease:'power4.out' }, 0)
+  .from('.hero-chapter', { x:-30, opacity:0, duration:.7, ease:'power2.out' }, .2)
+  .from('.hero-bubble-wrap', { y:30, opacity:0, duration:.8, ease:'power2.out' }, .5)
+  .from('.panel-b', { x:40, opacity:0, duration:.9, ease:'power3.out' }, .2)
+  .from('.panel-c', { y:30, opacity:0, duration:.7, ease:'power2.out' }, .6)
+  .from('.panel-d', { x:20, opacity:0, duration:.7, ease:'power2.out' }, .7);
+
+/* SCROLL REVEALS */
+const obs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting) e.target.classList.add('vis');
+  });
+},{threshold:.1});
+document.querySelectorAll('.sr,.sl').forEach(el=>obs.observe(el));
+
+/* COUNT UP */
+[{id:'s1',t:12,suf:'K+'},{id:'s2',t:84,suf:'K+'},{id:'s3',t:240,suf:'+'}].forEach(({id,t,suf})=>{
+  const el=document.getElementById(id);
+  ScrollTrigger.create({
+    trigger:'#hero',start:'top 80%',once:true,
+    onEnter:()=>{
+      gsap.to({v:0},{v:t,duration:2,ease:'power2.out',
+        onUpdate:function(){ el.textContent=Math.floor(this.targets()[0].v)+suf; }
+      });
+    }
+  });
+});
+
+/* PANEL HOVER wiggle */
+document.querySelectorAll('.cs-panel').forEach(p=>{
+  p.addEventListener('mouseenter',()=>{
+    gsap.to(p,{y:-4,duration:.3,ease:'power2.out'});
+  });
+  p.addEventListener('mouseleave',()=>{
+    gsap.to(p,{y:0,duration:.5,ease:'elastic.out(1,.5)'});
+  });
+});
+
+/* FEATURE CARD tilt */
+document.querySelectorAll('.feat-sm').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    const x=(e.clientX-r.left)/r.width-.5;
+    const y=(e.clientY-r.top)/r.height-.5;
+    gsap.to(card,{rotateY:x*4,rotateX:-y*3,duration:.4,ease:'power2.out',transformPerspective:800});
+  });
+  card.addEventListener('mouseleave',()=>{
+    gsap.to(card,{rotateY:0,rotateX:0,duration:.7,ease:'elastic.out(1,.4)'});
+  });
+});
+
+/* SPEECH BUBBLE pop on scroll */
+gsap.from('.speech-bubble-big',{
+  scale:.9,opacity:0,duration:.6,ease:'back.out(1.4)',stagger:.15,
+  scrollTrigger:{trigger:'.speech-grid',start:'top 80%'}
+});
+</script>
+</body>
+</html>

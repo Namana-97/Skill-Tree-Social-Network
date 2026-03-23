@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillForge ✦ Level Up Your Story</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+:root {
+  --cream:   #FDF6F0;
+  --blush:   #F2C4CE;
+  --rose:    #E8849A;
+  --deep:    #C45C7A;
+  --ink:     #2C1A2E;
+  --ink2:    #6B4C6E;
+  --lilac:   #D4B8E0;
+  --mint:    #B8D8D0;
+  --gold:    #E8C97A;
+  --petal:   #FAE0E4;
+  --panel:   #FDF0F4;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: auto; }
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ── CURSOR ── */
+#cur1, #cur2 {
+  position: fixed; pointer-events: none; z-index: 9999;
+  border-radius: 50%;
+  transform: translate(-50%,-50%);
+}
+#cur1 {
+  width: 10px; height: 10px;
+  background: var(--deep);
+  transition: width .2s, height .2s, background .3s;
+}
+#cur2 {
+  width: 40px; height: 40px;
+  border: 1px solid var(--rose);
+  opacity: .4;
+  transition: width .3s, height .3s, opacity .3s;
+}
+body.hov #cur1 { width: 18px; height: 18px; background: var(--rose); }
+body.hov #cur2 { width: 56px; height: 56px; opacity: .15; }
+
+/* ── PETAL CANVAS ── */
+#petalCanvas {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 1;
+  opacity: .5;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.6rem 3rem;
+  transition: background .4s, backdrop-filter .4s;
+}
+nav.scrolled {
+  background: rgba(253,246,240,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(228,132,154,.15);
+}
+.logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem; font-weight: 700; font-style: italic;
+  color: var(--ink); letter-spacing: .5px;
+  display: flex; align-items: center; gap: .5rem;
+}
+.logo-star { color: var(--rose); font-style: normal; font-size: 1rem; animation: twinkle 2s ease-in-out infinite; }
+@keyframes twinkle { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+.nav-links { display: flex; gap: 2.5rem; align-items: center; list-style: none; }
+.nav-links a {
+  font-size: .72rem; font-weight: 400; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--ink2);
+  text-decoration: none; opacity: .5;
+  transition: opacity .2s, color .2s; cursor: none;
+}
+.nav-links a:hover { opacity: 1; color: var(--deep); }
+.nav-btn {
+  font-family: 'Playfair Display', serif;
+  font-size: .85rem; font-style: italic;
+  padding: .6rem 1.8rem;
+  background: var(--deep); color: white; border: none;
+  border-radius: 100px; cursor: none;
+  transition: background .25s, transform .25s, box-shadow .25s;
+  box-shadow: 0 4px 20px rgba(196,92,122,.25);
+}
+.nav-btn:hover { background: var(--ink); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(196,92,122,.35); }
+
+/* ══════════════════════════════
+   HERO
+══════════════════════════════ */
+#hero {
+  min-height: 100vh;
+  display: grid; grid-template-columns: 1fr 1fr;
+  align-items: center;
+  padding: 8rem 3rem 5rem;
+  gap: 4rem;
+  position: relative; overflow: hidden;
+  z-index: 2;
+}
+
+/* Manga panel lines — subtle diagonal */
+#hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    108deg,
+    transparent 0px,
+    transparent 180px,
+    rgba(228,132,154,.04) 180px,
+    rgba(228,132,154,.04) 181px
+  );
+  pointer-events: none;
+}
+
+/* soft bg blob */
+.hero-blob {
+  position: absolute; border-radius: 50%;
+  filter: blur(100px); pointer-events: none; z-index: 0;
+}
+.hero-blob-1 { width: 600px; height: 600px; background: rgba(242,196,206,.35); top: -100px; right: -100px; animation: blobFloat 10s ease-in-out infinite alternate; }
+.hero-blob-2 { width: 400px; height: 400px; background: rgba(212,184,224,.2); bottom: 0; left: -80px; animation: blobFloat 12s ease-in-out infinite alternate-reverse; }
+@keyframes blobFloat { to { transform: translate(20px,30px) scale(1.05); } }
+
+.hero-left { position: relative; z-index: 2; }
+
+.hero-chapter {
+  display: flex; align-items: center; gap: .8rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .85rem; font-style: italic; letter-spacing: 2px;
+  color: var(--rose); margin-bottom: 2rem;
+  opacity: 0; transform: translateY(16px);
+  animation: fadeUp .8s ease .1s forwards;
+}
+.chapter-ornament { font-size: 1.2rem; }
+
+.hero-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(3.5rem, 7vw, 7.5rem);
+  font-weight: 900;
+  line-height: .95; letter-spacing: -2px;
+  color: var(--ink);
+  opacity: 0; transform: translateY(24px);
+  animation: fadeUp .9s ease .2s forwards;
+}
+.hero-title .line { display: block; }
+.hero-title .italic { font-style: italic; color: var(--deep); }
+.hero-title .ghost {
+  -webkit-text-stroke: 2px var(--ink);
+  color: transparent;
+}
+
+.hero-desc {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem; line-height: 1.85;
+  font-style: italic; color: var(--ink2);
+  max-width: 380px; margin: 2rem 0 2.5rem;
+  opacity: 0; transform: translateY(16px);
+  animation: fadeUp .8s ease .4s forwards;
+}
+
+.hero-actions {
+  display: flex; align-items: center; gap: 1.5rem;
+  opacity: 0; transform: translateY(16px);
+  animation: fadeUp .8s ease .55s forwards;
+}
+
+.btn-primary {
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem; font-style: italic;
+  padding: .9rem 2.4rem;
+  background: linear-gradient(135deg, var(--deep), var(--rose));
+  color: white; border: none; border-radius: 100px;
+  cursor: none; position: relative; overflow: hidden;
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .35s;
+  box-shadow: 0 6px 28px rgba(196,92,122,.3);
+}
+.btn-primary::after {
+  content: ''; position: absolute; inset: 0; border-radius: 100px;
+  background: linear-gradient(135deg, rgba(255,255,255,.25), transparent);
+  pointer-events: none;
+}
+.btn-primary:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 14px 40px rgba(196,92,122,.45); }
+
+.btn-ghost {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem; font-style: italic;
+  color: var(--ink2); text-decoration: none;
+  display: flex; align-items: center; gap: .5rem;
+  opacity: .6; transition: opacity .25s, gap .3s; cursor: none;
+}
+.btn-ghost:hover { opacity: 1; gap: .8rem; }
+
+/* Hero stats */
+.hero-stats {
+  display: flex; gap: 2rem; margin-top: 3rem;
+  padding-top: 2rem; border-top: 1px solid rgba(196,92,122,.15);
+  opacity: 0; transform: translateY(16px);
+  animation: fadeUp .8s ease .7s forwards;
+}
+.stat-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem; font-weight: 700; display: block; line-height: 1;
+  color: var(--deep);
+}
+.stat-lbl { font-size: .68rem; letter-spacing: 2px; text-transform: uppercase; color: var(--ink2); opacity: .5; }
+
+/* ── HERO RIGHT — manga panel ── */
+.hero-right {
+  position: relative; z-index: 2;
+  opacity: 0; transform: translateY(30px) scale(.97);
+  animation: cardIn 1s cubic-bezier(.34,1.56,.64,1) .35s forwards;
+}
+@keyframes cardIn { to { opacity:1; transform:translateY(0) scale(1); } }
+
+.manga-panel {
+  background: white;
+  border-radius: 20px;
+  padding: 2.2rem;
+  box-shadow: 0 4px 8px rgba(196,92,122,.05), 0 30px 80px rgba(196,92,122,.15);
+  border: 1px solid rgba(196,92,122,.1);
+  position: relative; overflow: hidden;
+}
+/* Panel corner decoration */
+.manga-panel::before {
+  content: '';
+  position: absolute; top: 0; right: 0;
+  width: 120px; height: 120px;
+  background: radial-gradient(circle at 100% 0%, rgba(242,196,206,.3), transparent 70%);
+  pointer-events: none;
+}
+.panel-tag {
+  position: absolute; top: -10px; left: 1.5rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .8rem; font-style: italic;
+  background: var(--blush); color: var(--deep);
+  padding: .15rem .8rem; border-radius: 100px;
+  border: 1px solid rgba(196,92,122,.2);
+}
+.panel-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 1.2rem; margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(196,92,122,.1);
+}
+.panel-user { display: flex; align-items: center; gap: .75rem; }
+.panel-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--blush), var(--lilac));
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', serif; font-size: .9rem; font-weight: 700;
+  color: var(--deep); border: 2px solid white;
+  box-shadow: 0 2px 12px rgba(196,92,122,.2);
+}
+.panel-name {
+  font-family: 'Playfair Display', serif; font-size: .95rem; font-weight: 700;
+  color: var(--ink); display: block;
+}
+.panel-role { font-size: .7rem; color: var(--ink2); font-style: italic; }
+.panel-lvl {
+  font-family: 'Cormorant Garamond', serif; font-size: .9rem; font-style: italic;
+  background: linear-gradient(135deg, var(--blush), var(--petal));
+  color: var(--deep); padding: .25rem .9rem; border-radius: 100px;
+  border: 1px solid rgba(196,92,122,.2);
+}
+.t-svg { width: 100%; height: 240px; }
+.n-lbl {
+  font-family: 'DM Sans', sans-serif; font-size: 8px; font-weight: 500;
+  fill: white; text-anchor: middle; dominant-baseline: middle;
+  pointer-events: none;
+}
+.skill-pills { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .8rem; }
+.s-pill {
+  display: inline-flex; align-items: center; gap: .35rem;
+  font-size: .7rem; font-style: italic;
+  font-family: 'Cormorant Garamond', serif;
+  padding: .25rem .8rem; border-radius: 100px;
+  border: 1px solid rgba(196,92,122,.18);
+  background: var(--petal); color: var(--deep);
+  transition: transform .2s, box-shadow .2s; cursor: none;
+}
+.s-pill:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(196,92,122,.18); }
+.pdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── TICKER ── */
+.ticker-wrap {
+  overflow: hidden; background: var(--deep);
+  padding: .85rem 0; position: relative; z-index: 2;
+}
+.ticker-track { display: flex; width: max-content; animation: marq 30s linear infinite; }
+.t-item {
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: 0 2.5rem; white-space: nowrap;
+  border-right: 1px solid rgba(255,255,255,.12);
+}
+.t-name { font-family: 'Cormorant Garamond', serif; font-size: .85rem; font-style: italic; color: var(--blush); font-weight: 400; }
+.t-act { font-size: .68rem; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,.35); }
+.t-petal { color: rgba(255,255,255,.3); font-size: .8rem; }
+@keyframes marq { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+/* ══════════════════════════════
+   STORY — PINNED SCROLL
+══════════════════════════════ */
+#story { position: relative; height: 400vh; }
+.story-sticky {
+  position: sticky; top: 0; height: 100vh; overflow: hidden;
+  display: grid; grid-template-columns: 1fr 1fr;
+  background: var(--panel);
+}
+
+/* soft diagonal divide */
+.story-sticky::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    108deg, transparent 0px, transparent 160px,
+    rgba(196,92,122,.03) 160px, rgba(196,92,122,.03) 161px
+  );
+  pointer-events: none;
+}
+
+.story-left {
+  padding: 5rem 4rem; display: flex; flex-direction: column; justify-content: center;
+  border-right: 1px solid rgba(196,92,122,.1);
+  position: relative;
+}
+/* big decorative bg number */
+.story-left::after {
+  content: attr(data-num);
+  position: absolute; bottom: 2rem; right: 2rem;
+  font-family: 'Playfair Display', serif; font-size: 12rem; font-weight: 900;
+  color: transparent; -webkit-text-stroke: 1px rgba(196,92,122,.07);
+  line-height: 1; pointer-events: none; transition: content .5s;
+}
+
+.s-step { position: absolute; opacity: 0; transform: translateY(24px); pointer-events: none; width: calc(100% - 8rem); }
+.s-step.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+.s-num {
+  font-family: 'Cormorant Garamond', serif; font-size: .8rem; font-style: italic;
+  color: var(--rose); letter-spacing: 2px; margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: .6rem;
+}
+.s-num::before { content: '✦'; font-size: .6rem; }
+.s-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.2rem, 3.5vw, 3.5rem); font-weight: 900;
+  line-height: 1.05; letter-spacing: -1px; color: var(--ink);
+  margin-bottom: 1.5rem;
+}
+.s-title em { font-style: italic; color: var(--deep); }
+.s-desc {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem; line-height: 1.9; font-style: italic;
+  color: var(--ink2); max-width: 380px;
+}
+
+.story-right {
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+  background: white;
+}
+/* soft gradient bg */
+.story-right::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 80% at 60% 40%, rgba(242,196,206,.18), transparent 70%);
+  pointer-events: none;
+}
+.s-visual { position: absolute; opacity: 0; transition: opacity .7s ease; width: 85%; max-width: 380px; }
+.s-visual.active { opacity: 1; }
+
+/* visual card style */
+.v-card {
+  background: white;
+  border-radius: 16px; padding: 1.8rem;
+  border: 1px solid rgba(196,92,122,.1);
+  box-shadow: 0 4px 40px rgba(196,92,122,.12);
+  position: relative;
+}
+.v-card-title {
+  font-family: 'Playfair Display', serif;
+  font-size: .8rem; font-weight: 700; font-style: italic;
+  color: var(--deep); margin-bottom: 1.2rem;
+  display: flex; align-items: center; gap: .5rem;
+}
+.v-card-title::before { content: '✦'; font-size: .55rem; color: var(--rose); }
+
+/* ══════════════════════════════
+   MARQUEE
+══════════════════════════════ */
+.marquee-wrap {
+  overflow: hidden; background: var(--blush);
+  padding: .85rem 0;
+  border-top: 1px solid rgba(196,92,122,.12);
+  border-bottom: 1px solid rgba(196,92,122,.12);
+  position: relative; z-index: 2;
+}
+.marquee-inner { display: flex; width: max-content; animation: marq 28s linear infinite; }
+.m-item {
+  display: flex; align-items: center; gap: 2rem;
+  padding: 0 2.5rem; white-space: nowrap;
+  border-right: 1px solid rgba(196,92,122,.2);
+}
+.m-item span {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: .9rem; font-style: italic; letter-spacing: 1px;
+  color: var(--deep);
+}
+.m-item .star { font-size: .7rem; color: var(--rose); font-style: normal; }
+
+/* ══════════════════════════════
+   STATS
+══════════════════════════════ */
+#stats {
+  padding: 8rem 3rem;
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 1px; background: rgba(196,92,122,.08);
+  border-top: 1px solid rgba(196,92,122,.08);
+  border-bottom: 1px solid rgba(196,92,122,.08);
+}
+.stat-cell {
+  background: var(--cream); padding: 4rem 3rem;
+  text-align: center; transition: background .35s;
+  position: relative; overflow: hidden;
+}
+.stat-cell:hover { background: white; }
+.stat-cell::after {
+  content: '✦';
+  position: absolute; bottom: 1rem; right: 1.5rem;
+  font-size: 3rem; color: var(--rose); opacity: .05;
+  transition: opacity .35s, transform .35s;
+}
+.stat-cell:hover::after { opacity: .1; transform: rotate(20deg) scale(1.2); }
+.big-num {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(3rem,5vw,5.5rem);
+  font-weight: 900; color: var(--deep);
+  display: block; line-height: 1; margin-bottom: .5rem;
+}
+.big-num .unit { font-size: .5em; }
+.big-lbl { font-family: 'Cormorant Garamond', serif; font-size: .85rem; font-style: italic; color: var(--ink2); }
+
+/* ══════════════════════════════
+   FEATURES
+══════════════════════════════ */
+#features { padding: 10rem 3rem; }
+
+.feat-header { margin-bottom: 5rem; }
+.feat-header .eyebrow {
+  font-family: 'Cormorant Garamond', serif; font-size: .9rem; font-style: italic;
+  letter-spacing: 2px; color: var(--rose); margin-bottom: .75rem;
+  display: flex; align-items: center; gap: .6rem;
+}
+.feat-header .eyebrow::before { content: '✦✦'; letter-spacing: 4px; font-size: .6rem; }
+.feat-h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.5rem, 5vw, 5rem);
+  font-weight: 900; letter-spacing: -2px; line-height: 1.0;
+}
+.feat-h2 em { font-style: italic; color: var(--deep); }
+
+.feat-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 1.5rem;
+}
+.f-card {
+  background: white; border-radius: 16px; padding: 3rem 2.5rem;
+  border: 1px solid rgba(196,92,122,.08);
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .35s;
+  position: relative; overflow: hidden;
+}
+.f-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 60px rgba(196,92,122,.15);
+}
+.f-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--blush), var(--lilac));
+  border-radius: 16px 16px 0 0;
+  opacity: 0; transition: opacity .35s;
+}
+.f-card:hover::before { opacity: 1; }
+.f-num {
+  font-family: 'Cormorant Garamond', serif; font-size: .75rem; font-style: italic;
+  letter-spacing: 2px; color: var(--rose); margin-bottom: 2rem;
+}
+.f-icon { font-size: 2rem; margin-bottom: 1.2rem; display: block; transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+.f-card:hover .f-icon { transform: scale(1.15) rotate(-5deg); }
+.f-card h3 {
+  font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700;
+  font-style: italic; margin-bottom: .75rem; color: var(--ink);
+}
+.f-card p { font-size: .85rem; line-height: 1.8; color: var(--ink2); font-weight: 300; }
+
+/* ══════════════════════════════
+   TESTIMONIALS
+══════════════════════════════ */
+#testimonials {
+  padding: 10rem 3rem;
+  background: var(--ink);
+  position: relative; overflow: hidden;
+}
+#testimonials::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 50% 70% at 20% 50%, rgba(242,196,206,.06), transparent),
+    radial-gradient(ellipse 40% 60% at 80% 30%, rgba(212,184,224,.06), transparent);
+  pointer-events: none;
+}
+.test-eyebrow {
+  font-family: 'Cormorant Garamond', serif; font-size: .9rem; font-style: italic;
+  letter-spacing: 2px; color: var(--rose); margin-bottom: .75rem;
+}
+.test-h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.5rem,5vw,5rem); font-weight: 900;
+  letter-spacing: -2px; line-height: 1.0; color: white;
+  margin-bottom: 4rem;
+}
+.test-h2 em { font-style: italic; color: var(--blush); }
+
+.t-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.5rem; }
+.t-card {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(242,196,206,.08);
+  border-radius: 16px; padding: 2.5rem;
+  transition: background .3s, border-color .3s;
+  position: relative; overflow: hidden;
+}
+.t-card:hover { background: rgba(255,255,255,.06); border-color: rgba(242,196,206,.18); }
+.t-card::before {
+  content: '❝';
+  font-family: 'Playfair Display', serif;
+  font-size: 4rem; color: var(--rose); opacity: .15;
+  line-height: 1; margin-bottom: .25rem; display: block;
+}
+.t-card p {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem; line-height: 1.85; font-style: italic;
+  color: rgba(255,255,255,.55); margin-bottom: 2rem;
+}
+.t-user { display: flex; align-items: center; gap: .75rem; }
+.t-av {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', serif; font-size: .75rem; font-weight: 700;
+  color: white; flex-shrink: 0;
+}
+.t-card:nth-child(1) .t-av { background: linear-gradient(135deg, var(--deep), var(--rose)); }
+.t-card:nth-child(2) .t-av { background: linear-gradient(135deg, #7B35C0, #B07AE0); }
+.t-card:nth-child(3) .t-av { background: linear-gradient(135deg, var(--rose), var(--blush)); }
+.t-name {
+  font-family: 'Playfair Display', serif; font-size: .85rem; font-weight: 700;
+  font-style: italic; color: white; display: block;
+}
+.t-role { font-size: .68rem; color: rgba(255,255,255,.25); letter-spacing: .5px; }
+
+/* ══════════════════════════════
+   CTA
+══════════════════════════════ */
+#cta {
+  min-height: 90vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 8rem 3rem;
+  position: relative; overflow: hidden;
+  background: var(--cream);
+}
+.cta-blob-1, .cta-blob-2 {
+  position: absolute; border-radius: 50%;
+  filter: blur(100px); pointer-events: none; animation: blobFloat 10s ease-in-out infinite alternate;
+}
+.cta-blob-1 { width: 600px; height: 600px; background: rgba(242,196,206,.3); top: -150px; left: -100px; }
+.cta-blob-2 { width: 500px; height: 500px; background: rgba(212,184,224,.25); bottom: -100px; right: -80px; animation-delay: -5s; }
+
+.cta-eyebrow {
+  font-family: 'Cormorant Garamond', serif; font-size: .9rem; font-style: italic;
+  letter-spacing: 3px; color: var(--rose); margin-bottom: 2rem;
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: .8rem; justify-content: center;
+}
+.cta-eyebrow span { opacity: .5; }
+.cta-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(4rem, 10vw, 10rem); font-weight: 900;
+  letter-spacing: -4px; line-height: .9;
+  position: relative; z-index: 1; margin-bottom: 2rem;
+}
+.cta-title .cta-line { display: block; overflow: hidden; }
+.cta-title .ghost { -webkit-text-stroke: 2.5px var(--ink); color: transparent; }
+.cta-title .rose { color: var(--deep); }
+.cta-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem; font-style: italic; color: var(--ink2);
+  margin-bottom: 3rem; position: relative; z-index: 1;
+}
+.cta-actions { display: flex; gap: 1rem; position: relative; z-index: 1; }
+.cta-main {
+  font-family: 'Playfair Display', serif; font-size: 1rem; font-style: italic;
+  padding: 1rem 3rem;
+  background: linear-gradient(135deg, var(--deep), var(--rose));
+  color: white; border: none; border-radius: 100px; cursor: none;
+  box-shadow: 0 6px 28px rgba(196,92,122,.35);
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .35s;
+}
+.cta-main:hover { transform: translateY(-4px); box-shadow: 0 14px 40px rgba(196,92,122,.5); }
+.cta-sec {
+  font-family: 'Cormorant Garamond', serif; font-size: 1rem; font-style: italic;
+  padding: 1rem 2.5rem;
+  background: transparent; color: var(--ink2);
+  border: 1.5px solid rgba(196,92,122,.25); border-radius: 100px;
+  cursor: none; transition: border-color .25s, color .25s, transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+.cta-sec:hover { border-color: var(--deep); color: var(--deep); transform: translateY(-4px); }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--ink); padding: 2.5rem 3rem;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.f-logo {
+  font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700;
+  font-style: italic; color: var(--blush);
+}
+footer p { font-size: .7rem; color: rgba(255,255,255,.2); letter-spacing: 1px; }
+
+/* ── KEYFRAMES ── */
+@keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+
+/* ── RESPONSIVE ── */
+@media(max-width:960px){
+  #hero{grid-template-columns:1fr;padding:7rem 1.5rem 4rem;}
+  .hero-right{display:none;}
+  nav{padding:1.2rem 1.5rem;}
+  .nav-links{display:none;}
+  .story-sticky{grid-template-columns:1fr;}
+  .story-right{display:none;}
+  #stats{grid-template-columns:repeat(2,1fr);}
+  .feat-grid{grid-template-columns:1fr;}
+  .t-grid{grid-template-columns:1fr;}
+  .cta-actions{flex-direction:column;align-items:center;}
+  footer{flex-direction:column;gap:1rem;text-align:center;}
+  #features,#testimonials,#cta{padding:6rem 1.5rem;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="petalCanvas"></canvas>
+<div id="cur1"></div>
+<div id="cur2"></div>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="logo"><span class="logo-star">✦</span> SkillForge</div>
+  <ul class="nav-links">
+    <li><a href="#story">How it works</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#testimonials">Community</a></li>
+    <li><button class="nav-btn" style="list-style:none">Begin your story</button></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-blob hero-blob-1"></div>
+  <div class="hero-blob hero-blob-2"></div>
+
+  <div class="hero-left">
+    <div class="hero-chapter">
+      <span class="chapter-ornament">✿</span>
+      Chapter One — Origin Story
+    </div>
+
+    <h1 class="hero-title">
+      <span class="line">LEVEL</span>
+      <span class="line italic">Up Your</span>
+      <span class="line ghost">Identity</span>
+    </h1>
+
+    <p class="hero-desc">
+      Stop hiding your expertise in bullet points. Build a living skill tree, grow through real work, and find the people who were always meant to find you.
+    </p>
+
+    <div class="hero-actions">
+      <button class="btn-primary">Begin your story ✦</button>
+      <a href="#story" class="btn-ghost">See how it works →</a>
+    </div>
+
+    <div class="hero-stats">
+      <div>
+        <span class="stat-num" id="h1">0K+</span>
+        <span class="stat-lbl">Trees planted</span>
+      </div>
+      <div>
+        <span class="stat-num" id="h2">0K+</span>
+        <span class="stat-lbl">Vouches given</span>
+      </div>
+      <div>
+        <span class="stat-num" id="h3">0+</span>
+        <span class="stat-lbl">Skill types</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="manga-panel">
+      <span class="panel-tag">✦ skill tree</span>
+      <div class="panel-head">
+        <div class="panel-user">
+          <div class="panel-avatar">AK</div>
+          <div>
+            <span class="panel-name">Aryan Kumar</span>
+            <span class="panel-role">Full-Stack Developer</span>
+          </div>
+        </div>
+        <span class="panel-lvl">Lv. 34 ✦</span>
+      </div>
+
+      <svg class="t-svg" viewBox="0 0 380 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- edges — soft rose -->
+        <line x1="190" y1="40" x2="88" y2="112" stroke="#E8849A" stroke-width="1.5" stroke-opacity=".25"/>
+        <line x1="190" y1="40" x2="190" y2="118" stroke="#E8849A" stroke-width="1.5" stroke-opacity=".25"/>
+        <line x1="190" y1="40" x2="292" y2="112" stroke="#E8849A" stroke-width="1.5" stroke-opacity=".25"/>
+        <line x1="88" y1="112" x2="44" y2="192" stroke="#E8849A" stroke-width="1.5" stroke-opacity=".2"/>
+        <line x1="88" y1="112" x2="126" y2="192" stroke="#E8849A" stroke-width="1.5" stroke-opacity=".2"/>
+        <line x1="292" y1="112" x2="254" y2="192" stroke="#E8849A" stroke-width="1.5" stroke-opacity=".2"/>
+        <line x1="292" y1="112" x2="336" y2="192" stroke="#E8849A" stroke-width="1.5" stroke-opacity=".2"/>
+
+        <!-- root pulse -->
+        <circle cx="190" cy="40" r="34" fill="#C45C7A" opacity=".08">
+          <animate attributeName="r" values="26;38;26" dur="3s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values=".08;0;.08" dur="3s" repeatCount="indefinite"/>
+        </circle>
+        <!-- root -->
+        <circle cx="190" cy="40" r="26" fill="url(#rootGrad)"/>
+        <text class="n-lbl" x="190" y="40">JS</text>
+        <!-- vouch -->
+        <circle cx="212" cy="20" r="10" fill="#F2C4CE"/>
+        <text x="212" y="24" text-anchor="middle" fill="#C45C7A" font-size="8" font-weight="700" font-family="DM Sans">12</text>
+
+        <!-- L2 -->
+        <circle cx="88" cy="112" r="18" fill="url(#grad1)"/>
+        <text class="n-lbl" x="88" y="112">React</text>
+        <circle cx="190" cy="118" r="13" fill="url(#grad2)"/>
+        <text class="n-lbl" x="190" y="118" font-size="7.5">Node</text>
+        <circle cx="292" cy="112" r="18" fill="url(#grad3)"/>
+        <text class="n-lbl" x="292" y="112">CSS</text>
+
+        <!-- L3 -->
+        <circle cx="44" cy="192" r="12" fill="#E8849A"/><text class="n-lbl" x="44" y="192" font-size="7.5">Redux</text>
+        <circle cx="126" cy="192" r="11" fill="#B07AE0"/><text class="n-lbl" x="126" y="192" font-size="7.5">Next</text>
+        <circle cx="254" cy="192" r="11" fill="#84C5B8"/><text class="n-lbl" x="254" y="192" font-size="7">Tailwind</text>
+        <circle cx="336" cy="192" r="10" fill="#7AAED4"/><text class="n-lbl" x="336" y="192" font-size="7.5">SQL</text>
+
+        <defs>
+          <radialGradient id="rootGrad" cx="30%" cy="30%">
+            <stop offset="0%" stop-color="#E8849A"/>
+            <stop offset="100%" stop-color="#C45C7A"/>
+          </radialGradient>
+          <radialGradient id="grad1" cx="30%" cy="30%">
+            <stop offset="0%" stop-color="#C07AE0"/>
+            <stop offset="100%" stop-color="#8B2FBF"/>
+          </radialGradient>
+          <radialGradient id="grad2" cx="30%" cy="30%">
+            <stop offset="0%" stop-color="#7AB8E0"/>
+            <stop offset="100%" stop-color="#3A7FC2"/>
+          </radialGradient>
+          <radialGradient id="grad3" cx="30%" cy="30%">
+            <stop offset="0%" stop-color="#98D4C8"/>
+            <stop offset="100%" stop-color="#5AADA0"/>
+          </radialGradient>
+        </defs>
+      </svg>
+
+      <div class="skill-pills">
+        <span class="s-pill"><span class="pdot" style="background:#E8849A"></span>JS · Lv.5</span>
+        <span class="s-pill"><span class="pdot" style="background:#B07AE0"></span>React · Lv.4</span>
+        <span class="s-pill"><span class="pdot" style="background:#7AB8E0"></span>Node · Lv.3</span>
+        <span class="s-pill"><span class="pdot" style="background:#84C5B8"></span>CSS · Lv.4</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-track">
+    <div class="t-item"><span class="t-name">Yuki S.</span><span class="t-petal">✿</span><span class="t-act">Vouched React · Lv.4</span></div>
+    <div class="t-item"><span class="t-name">James K.</span><span class="t-petal">✿</span><span class="t-act">Leveled up Python · Lv.5</span></div>
+    <div class="t-item"><span class="t-name">Priya M.</span><span class="t-petal">✿</span><span class="t-act">Found complement match</span></div>
+    <div class="t-item"><span class="t-name">Alex T.</span><span class="t-petal">✿</span><span class="t-act">Vouched System Design · Lv.3</span></div>
+    <div class="t-item"><span class="t-name">Sara L.</span><span class="t-petal">✿</span><span class="t-act">Planted first skill tree</span></div>
+    <div class="t-item"><span class="t-name">Ravi N.</span><span class="t-petal">✿</span><span class="t-act">Connected with 3 matches</span></div>
+    <div class="t-item"><span class="t-name">Hana W.</span><span class="t-petal">✿</span><span class="t-act">Leveled up Figma · Lv.4</span></div>
+    <!-- dup -->
+    <div class="t-item"><span class="t-name">Yuki S.</span><span class="t-petal">✿</span><span class="t-act">Vouched React · Lv.4</span></div>
+    <div class="t-item"><span class="t-name">James K.</span><span class="t-petal">✿</span><span class="t-act">Leveled up Python · Lv.5</span></div>
+    <div class="t-item"><span class="t-name">Priya M.</span><span class="t-petal">✿</span><span class="t-act">Found complement match</span></div>
+    <div class="t-item"><span class="t-name">Alex T.</span><span class="t-petal">✿</span><span class="t-act">Vouched System Design · Lv.3</span></div>
+    <div class="t-item"><span class="t-name">Sara L.</span><span class="t-petal">✿</span><span class="t-act">Planted first skill tree</span></div>
+    <div class="t-item"><span class="t-name">Ravi N.</span><span class="t-petal">✿</span><span class="t-act">Connected with 3 matches</span></div>
+    <div class="t-item"><span class="t-name">Hana W.</span><span class="t-petal">✿</span><span class="t-act">Leveled up Figma · Lv.4</span></div>
+  </div>
+</div>
+
+<!-- STORY -->
+<section id="story">
+  <div class="story-sticky" id="stickyCont">
+    <div class="story-left" id="storyLeft" data-num="01">
+      <div class="s-step active" id="ss1">
+        <div class="s-num">Chapter 01 of 03</div>
+        <h2 class="s-title">Plant your<br><em>skill tree</em></h2>
+        <p class="s-desc">Add skills, connect related nodes, set your level, and attach proof — repos, projects, live demos. Your tree is yours to shape and grow.</p>
+      </div>
+      <div class="s-step" id="ss2">
+        <div class="s-num">Chapter 02 of 03</div>
+        <h2 class="s-title">Level up &<br><em>get vouched</em></h2>
+        <p class="s-desc">As you grow, update your levels. Peers can vouch for your skills — but only if they hold them too. No empty endorsements. Only real ones.</p>
+      </div>
+      <div class="s-step" id="ss3">
+        <div class="s-num">Chapter 03 of 03</div>
+        <h2 class="s-title">Find your<br><em>complement</em></h2>
+        <p class="s-desc">Our graph algorithm finds people whose skill trees fill your gaps. Perfect for co-founders, dream teammates, and mentors who've been exactly where you're going.</p>
+      </div>
+    </div>
+
+    <div class="story-right">
+      <!-- v1: tree card -->
+      <div class="s-visual active" id="sv1">
+        <div class="v-card">
+          <div class="v-card-title">Your skill tree</div>
+          <svg viewBox="0 0 340 220" fill="none" style="width:100%">
+            <line x1="170" y1="36" x2="80" y2="100" stroke="#E8849A" stroke-opacity=".3" stroke-width="1.5"/>
+            <line x1="170" y1="36" x2="170" y2="108" stroke="#E8849A" stroke-opacity=".3" stroke-width="1.5"/>
+            <line x1="170" y1="36" x2="260" y2="100" stroke="#E8849A" stroke-opacity=".3" stroke-width="1.5"/>
+            <line x1="80" y1="100" x2="38" y2="175" stroke="#E8849A" stroke-opacity=".2" stroke-width="1.5"/>
+            <line x1="80" y1="100" x2="115" y2="175" stroke="#E8849A" stroke-opacity=".2" stroke-width="1.5"/>
+            <line x1="260" y1="100" x2="225" y2="175" stroke="#E8849A" stroke-opacity=".2" stroke-width="1.5"/>
+            <line x1="260" y1="100" x2="302" y2="175" stroke="#E8849A" stroke-opacity=".2" stroke-width="1.5"/>
+            <circle cx="170" cy="36" r="26" fill="#C45C7A"/><text class="n-lbl" x="170" y="36">Python</text>
+            <circle cx="170" cy="36" r="34" fill="#C45C7A" opacity=".07"><animate attributeName="r" values="26;36;26" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" values=".07;0;.07" dur="3s" repeatCount="indefinite"/></circle>
+            <circle cx="80" cy="100" r="18" fill="#B07AE0"/><text class="n-lbl" x="80" y="100">ML</text>
+            <circle cx="170" cy="108" r="14" fill="#7AB8E0"/><text class="n-lbl" x="170" y="108" font-size="7.5">API</text>
+            <circle cx="260" cy="100" r="18" fill="#84C5B8"/><text class="n-lbl" x="260" y="100">SQL</text>
+            <circle cx="38" cy="175" r="12" fill="#E8849A"/><text class="n-lbl" x="38" y="175" font-size="7.5">PyTorch</text>
+            <circle cx="115" cy="175" r="11" fill="#B07AE0"/><text class="n-lbl" x="115" y="175" font-size="7.5">NLP</text>
+            <circle cx="225" cy="175" r="11" fill="#84C5B8"/><text class="n-lbl" x="225" y="175" font-size="7">Postgres</text>
+            <circle cx="302" cy="175" r="10" fill="#7AB8E0"/><text class="n-lbl" x="302" y="175" font-size="7.5">REST</text>
+          </svg>
+        </div>
+      </div>
+      <!-- v2: vouch card -->
+      <div class="s-visual" id="sv2">
+        <div class="v-card">
+          <div class="v-card-title">Vouches received</div>
+          <div style="display:flex;flex-direction:column;gap:.8rem;">
+            <div style="background:var(--petal);border-radius:10px;padding:1rem;border:1px solid rgba(196,92,122,.12);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+                <div style="display:flex;align-items:center;gap:.6rem;">
+                  <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#E8849A,#C45C7A);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:.65rem;font-weight:700;color:white;">SR</div>
+                  <div><span style="font-size:.78rem;color:var(--ink);font-weight:500;display:block;">Sofia R.</span><span style="font-size:.65rem;color:var(--ink2);font-style:italic;">Vouched React · Lv.4</span></div>
+                </div>
+                <span style="font-size:.65rem;color:var(--deep);font-family:'Cormorant Garamond',serif;font-style:italic;">✦ verified</span>
+              </div>
+            </div>
+            <div style="background:var(--petal);border-radius:10px;padding:1rem;border:1px solid rgba(196,92,122,.12);">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;align-items:center;gap:.6rem;">
+                  <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#B07AE0,#7B35C0);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:.65rem;font-weight:700;color:white;">MK</div>
+                  <div><span style="font-size:.78rem;color:var(--ink);font-weight:500;display:block;">Marcus K.</span><span style="font-size:.65rem;color:var(--ink2);font-style:italic;">Vouched Node · Lv.3</span></div>
+                </div>
+                <span style="font-size:.65rem;color:var(--deep);font-family:'Cormorant Garamond',serif;font-style:italic;">✦ verified</span>
+              </div>
+            </div>
+            <div style="padding:.75rem 0 0;border-top:1px solid rgba(196,92,122,.1);">
+              <div style="font-size:.72rem;color:var(--ink2);font-style:italic;font-family:'Cormorant Garamond',serif;margin-bottom:.5rem;">Skill levels</div>
+              <div style="display:flex;flex-direction:column;gap:.4rem;">
+                <div><div style="display:flex;justify-content:space-between;margin-bottom:.2rem;"><span style="font-size:.7rem;color:var(--ink2);">JavaScript</span><span style="font-size:.7rem;color:var(--deep);font-style:italic;font-family:'Cormorant Garamond',serif;">Lv.5</span></div><div style="height:3px;background:rgba(196,92,122,.1);border-radius:2px;"><div style="height:100%;width:95%;background:linear-gradient(90deg,var(--rose),var(--blush));border-radius:2px;"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;margin-bottom:.2rem;"><span style="font-size:.7rem;color:var(--ink2);">React</span><span style="font-size:.7rem;color:var(--deep);font-style:italic;font-family:'Cormorant Garamond',serif;">Lv.4</span></div><div style="height:3px;background:rgba(196,92,122,.1);border-radius:2px;"><div style="height:100%;width:76%;background:linear-gradient(90deg,#B07AE0,#D4B8E0);border-radius:2px;"></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- v3: match card -->
+      <div class="s-visual" id="sv3">
+        <div class="v-card">
+          <div class="v-card-title">Complement matches</div>
+          <div style="display:flex;flex-direction:column;gap:.75rem;">
+            <div style="border:1px solid rgba(196,92,122,.15);border-radius:10px;padding:1rem;background:var(--petal);">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem;">
+                <div style="display:flex;align-items:center;gap:.6rem;">
+                  <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--rose),var(--lilac));display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:.65rem;font-weight:700;color:white;">LP</div>
+                  <div><span style="font-size:.78rem;color:var(--ink);font-weight:500;display:block;">Lisa Park</span><span style="font-size:.65rem;color:var(--ink2);font-style:italic;">ML Engineer</span></div>
+                </div>
+                <span style="font-family:'Cormorant Garamond',serif;font-size:.75rem;font-style:italic;color:var(--deep);">94% match</span>
+              </div>
+              <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
+                <span style="font-size:.62rem;border:1px solid rgba(196,92,122,.2);padding:.12rem .45rem;border-radius:100px;color:var(--deep);font-style:italic;font-family:'Cormorant Garamond',serif;">Python ↑</span>
+                <span style="font-size:.62rem;border:1px solid rgba(196,92,122,.2);padding:.12rem .45rem;border-radius:100px;color:var(--deep);font-style:italic;font-family:'Cormorant Garamond',serif;">TensorFlow ↑</span>
+                <span style="font-size:.62rem;border:1px solid rgba(196,92,122,.2);padding:.12rem .45rem;border-radius:100px;color:var(--deep);font-style:italic;font-family:'Cormorant Garamond',serif;">MLOps ↑</span>
+              </div>
+            </div>
+            <div style="border:1px solid rgba(196,92,122,.1);border-radius:10px;padding:1rem;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="display:flex;align-items:center;gap:.6rem;">
+                  <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7AB8E0,#84C5B8);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:.65rem;font-weight:700;color:white;">JT</div>
+                  <div><span style="font-size:.78rem;color:var(--ink);font-weight:500;display:block;">James T.</span><span style="font-size:.65rem;color:var(--ink2);font-style:italic;">DevOps Engineer</span></div>
+                </div>
+                <span style="font-family:'Cormorant Garamond',serif;font-size:.75rem;font-style:italic;color:var(--ink2);">87% match</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-inner">
+    <div class="m-item"><span>Skill Tree</span><span class="star">✦</span></div>
+    <div class="m-item"><span>Level Up</span><span class="star">✦</span></div>
+    <div class="m-item"><span>Get Vouched</span><span class="star">✦</span></div>
+    <div class="m-item"><span>Find Complement</span><span class="star">✦</span></div>
+    <div class="m-item"><span>Grow Your Graph</span><span class="star">✦</span></div>
+    <div class="m-item"><span>Write Your Story</span><span class="star">✦</span></div>
+    <div class="m-item"><span>Skill Tree</span><span class="star">✦</span></div>
+    <div class="m-item"><span>Level Up</span><span class="star">✦</span></div>
+    <div class="m-item"><span>Get Vouched</span><span class="star">✦</span></div>
+    <div class="m-item"><span>Find Complement</span><span class="star">✦</span></div>
+    <div class="m-item"><span>Grow Your Graph</span><span class="star">✦</span></div>
+    <div class="m-item"><span>Write Your Story</span><span class="star">✦</span></div>
+  </div>
+</div>
+
+<!-- STATS -->
+<section id="stats">
+  <div class="stat-cell"><span class="big-num"><span id="st1">0</span><span class="unit">K+</span></span><span class="big-lbl">Skill trees planted</span></div>
+  <div class="stat-cell"><span class="big-num"><span id="st2">0</span><span class="unit">K+</span></span><span class="big-lbl">Vouches given</span></div>
+  <div class="stat-cell"><span class="big-num"><span id="st3">0</span><span class="unit">+</span></span><span class="big-lbl">Skill categories</span></div>
+  <div class="stat-cell"><span class="big-num"><span id="st4">0</span><span class="unit">%</span></span><span class="big-lbl">Match accuracy</span></div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="feat-header">
+    <p class="eyebrow">Three things that make us different</p>
+    <h2 class="feat-h2" id="featH2">Built for people<br>who <em>build things</em></h2>
+  </div>
+  <div class="feat-grid">
+    <div class="f-card">
+      <div class="f-num">✦ Feature 01</div>
+      <span class="f-icon">🌸</span>
+      <h3>A living skill graph</h3>
+      <p>Your tree isn't static. Every project finished, every vouch received, every skill added ripples through your graph — a living record of your evolution.</p>
+    </div>
+    <div class="f-card">
+      <div class="f-num">✦ Feature 02</div>
+      <span class="f-icon">🎯</span>
+      <h3>Complement matching</h3>
+      <p>Graph-based algorithm finds people whose skill trees fill exactly your gaps. Built for co-founders, dream teams, and the mentors who've walked your path.</p>
+    </div>
+    <div class="f-card">
+      <div class="f-num">✦ Feature 03</div>
+      <span class="f-icon">🏅</span>
+      <h3>Real vouch system</h3>
+      <p>Endorsements that mean something. You can only vouch for a skill you hold at an equal or higher level. Zero inflation. Every vouch carries real weight.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section id="testimonials">
+  <p class="test-eyebrow">✦ What people are saying</p>
+  <h2 class="test-h2" id="testH2">People are already<br><em>in love</em></h2>
+  <div class="t-grid">
+    <div class="t-card">
+      <div class="t-card-before"></div>
+      <p>Finally a way to show my skills that doesn't look like every other LinkedIn profile. My tree got me three interview requests in one month.</p>
+      <div class="t-user">
+        <div class="t-av">SR</div>
+        <div><span class="t-name">Sofia R.</span><span class="t-role">Frontend Engineer</span></div>
+      </div>
+    </div>
+    <div class="t-card">
+      <p>The complement matching is genuinely magical. Found my co-founder through SkillForge — his backend depth fills exactly what I was missing.</p>
+      <div class="t-user">
+        <div class="t-av">MK</div>
+        <div><span class="t-name">Marcus K.</span><span class="t-role">ML Researcher & Founder</span></div>
+      </div>
+    </div>
+    <div class="t-card">
+      <p>Instead of posting job descriptions, I shared our skill gaps. The right people found us in 48 hours. I haven't posted a listing since.</p>
+      <div class="t-user">
+        <div class="t-av">JP</div>
+        <div><span class="t-name">Jamie P.</span><span class="t-role">CTO, Early-Stage Startup</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="cta-blob-1"></div>
+  <div class="cta-blob-2"></div>
+  <p class="cta-eyebrow"><span>✦</span> Your story starts here <span>✦</span></p>
+  <h2 class="cta-title" id="ctaH2">
+    <span class="cta-line">STOP</span>
+    <span class="cta-line ghost">LISTING.</span>
+    <span class="cta-line rose">START</span>
+    <span class="cta-line ghost">SHOWING.</span>
+  </h2>
+  <p class="cta-sub">Free forever. No credit card. Under 5 minutes.</p>
+  <div class="cta-actions">
+    <button class="cta-main">Begin your story ✦</button>
+    <button class="cta-sec">See examples</button>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="f-logo">✦ SkillForge</div>
+  <p>Built for people who build things.</p>
+  <p>© 2025 SkillForge</p>
+</footer>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+/* ── CURSOR ── */
+const c1=document.getElementById('cur1'), c2=document.getElementById('cur2');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX; my=e.clientY;
+  gsap.set(c1,{left:mx,top:my});
+});
+(function loop(){
+  rx+=(mx-rx)*.1; ry+=(my-ry)*.1;
+  c2.style.left=rx+'px'; c2.style.top=ry+'px';
+  requestAnimationFrame(loop);
+})();
+document.querySelectorAll('a,button,.f-card,.t-card,.s-pill').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('hov'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('hov'));
+});
+
+/* ── FALLING PETALS ── */
+const canvas = document.getElementById('petalCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+window.addEventListener('resize',()=>{ canvas.width=window.innerWidth; canvas.height=window.innerHeight; });
+
+const petals = Array.from({length:18},()=>({
+  x: Math.random()*window.innerWidth,
+  y: Math.random()*window.innerHeight - window.innerHeight,
+  size: Math.random()*8+5,
+  speed: Math.random()*.6+.3,
+  drift: (Math.random()-.5)*.4,
+  rotation: Math.random()*360,
+  rotSpeed: (Math.random()-.5)*1.5,
+  opacity: Math.random()*.4+.15,
+  hue: Math.random()*20+340, // pinks
+}));
+
+function drawPetal(p){
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  ctx.rotate(p.rotation*Math.PI/180);
+  ctx.globalAlpha = p.opacity;
+  ctx.beginPath();
+  ctx.ellipse(0,0,p.size*.6,p.size,0,0,Math.PI*2);
+  ctx.fillStyle=`hsl(${p.hue},70%,80%)`;
+  ctx.fill();
+  ctx.restore();
+}
+
+function animatePetals(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  petals.forEach(p=>{
+    p.y += p.speed;
+    p.x += p.drift + Math.sin(p.y*.02)*.3;
+    p.rotation += p.rotSpeed;
+    if(p.y > window.innerHeight+20){
+      p.y = -20; p.x = Math.random()*window.innerWidth;
+    }
+    drawPetal(p);
+  });
+  requestAnimationFrame(animatePetals);
+}
+animatePetals();
+
+/* ── NAV SCROLL ── */
+ScrollTrigger.create({
+  start:'top -60',
+  onEnter:()=>document.getElementById('nav').classList.add('scrolled'),
+  onLeaveBack:()=>document.getElementById('nav').classList.remove('scrolled'),
+});
+
+/* ── STORY SCROLL ── */
+const steps = [
+  {s:document.getElementById('ss1'),v:document.getElementById('sv1'),n:'01'},
+  {s:document.getElementById('ss2'),v:document.getElementById('sv2'),n:'02'},
+  {s:document.getElementById('ss3'),v:document.getElementById('sv3'),n:'03'},
+];
+const storyLeft = document.getElementById('storyLeft');
+
+function showStep(i){
+  steps.forEach((item,j)=>{
+    const on = j===i;
+    gsap.to(item.s,{opacity:on?1:0,y:on?0:24,duration:.7,ease:'power2.out',pointerEvents:on?'auto':'none'});
+    gsap.to(item.v,{opacity:on?1:0,duration:.7,ease:'power2.out'});
+    item.s.classList.toggle('active',on);
+    item.v.classList.toggle('active',on);
+  });
+  storyLeft.setAttribute('data-num',steps[i].n);
+}
+
+ScrollTrigger.create({
+  trigger:'#story', start:'top top', end:'bottom bottom',
+  onUpdate:self=>{
+    const p=self.progress;
+    const i=p<.33?0:p<.66?1:2;
+    const cur=steps.findIndex(s=>s.s.classList.contains('active'));
+    if(cur!==i) showStep(i);
+  }
+});
+
+/* ── HERO ENTRANCE ── */
+gsap.from('#nav',{opacity:0,y:-20,duration:.8,ease:'power2.out',delay:.1});
+
+/* ── FEATURES ── */
+gsap.from('#featH2',{y:40,opacity:0,duration:1,ease:'power3.out',scrollTrigger:{trigger:'#features',start:'top 75%'}});
+gsap.from('.f-card',{y:40,opacity:0,duration:.8,ease:'power2.out',stagger:.15,scrollTrigger:{trigger:'.feat-grid',start:'top 80%'}});
+
+/* ── TESTIMONIALS ── */
+gsap.from('#testH2',{y:40,opacity:0,duration:1,ease:'power3.out',scrollTrigger:{trigger:'#testimonials',start:'top 75%'}});
+gsap.from('.t-card',{y:40,opacity:0,duration:.7,ease:'power2.out',stagger:.15,scrollTrigger:{trigger:'.t-grid',start:'top 80%'}});
+
+/* ── CTA TITLE ── */
+gsap.from('#ctaH2 .cta-line',{y:60,opacity:0,duration:.9,ease:'power4.out',stagger:.12,scrollTrigger:{trigger:'#cta',start:'top 75%'}});
+
+/* ── STATS ── */
+gsap.from('.stat-cell',{y:30,opacity:0,duration:.7,stagger:.08,ease:'power2.out',scrollTrigger:{trigger:'#stats',start:'top 80%'}});
+const statDefs=[{el:'st1',t:12},{el:'st2',t:84},{el:'st3',t:240},{el:'st4',t:94}];
+statDefs.forEach(({el,t})=>{
+  const node=document.getElementById(el);
+  ScrollTrigger.create({
+    trigger:'#stats',start:'top 80%',once:true,
+    onEnter:()=>{
+      gsap.to({v:0},{v:t,duration:1.8,ease:'power2.out',
+        onUpdate:function(){node.textContent=Math.floor(this.targets()[0].v);}
+      });
+    }
+  });
+});
+
+/* ── CARD HOVER 3D ── */
+document.querySelectorAll('.f-card,.t-card').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    const x=(e.clientX-r.left)/r.width-.5;
+    const y=(e.clientY-r.top)/r.height-.5;
+    gsap.to(card,{rotateY:x*5,rotateX:-y*4,duration:.5,ease:'power2.out',transformPerspective:900});
+  });
+  card.addEventListener('mouseleave',()=>{
+    gsap.to(card,{rotateY:0,rotateX:0,duration:.8,ease:'elastic.out(1,.4)'});
+  });
+});
+</script>
+</body>
+</html>
