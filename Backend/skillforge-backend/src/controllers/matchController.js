@@ -1,7 +1,6 @@
 const pool = require('../db/pool');
 
 // ── GET /match/:userId ────────────────────────────────
-// Returns top complement matches for a user, with gap analysis
 async function getMatches(req, res) {
   const userId = parseInt(req.params.userId);
   const limit  = parseInt(req.query.limit) || 10;
@@ -11,12 +10,10 @@ async function getMatches(req, res) {
       `SELECT
          m.score,
          u.id, u.display_name, u.role_title, u.avatar_initials, u.avatar_color, u.level,
-         -- Aggregate their skills as JSON array
          COALESCE(
            json_agg(json_build_object('name',s.name,'level',s.level,'color',s.color))
            FILTER (WHERE s.id IS NOT NULL), '[]'
          ) AS their_skills,
-         -- Total vouches they've received
          (SELECT COUNT(*) FROM vouches WHERE recipient_id = u.id)::int AS vouch_count
        FROM matches m
        JOIN users u ON u.id = m.user_b_id
@@ -28,7 +25,6 @@ async function getMatches(req, res) {
       [userId, limit]
     );
 
-    // For each match, compute gap details (what they have that you don't, and vice versa)
     const mySkills = await pool.query(
       'SELECT name, level FROM skills WHERE user_id=$1',
       [userId]
@@ -39,9 +35,9 @@ async function getMatches(req, res) {
       const theirNames = new Set(match.their_skills.map(s => s.name));
       return {
         ...match,
-        fills_your_gaps:  match.their_skills.filter(s => !myNames.has(s.name)),
-        you_fill_theirs:  mySkills.rows.filter(s => !theirNames.has(s.name)),
-        shared_skills:    match.their_skills.filter(s => myNames.has(s.name)),
+        fills_your_gaps: match.their_skills.filter(s => !myNames.has(s.name)),
+        you_fill_theirs: mySkills.rows.filter(s => !theirNames.has(s.name)),
+        shared_skills:   match.their_skills.filter(s => myNames.has(s.name)),
       };
     });
 
@@ -53,14 +49,17 @@ async function getMatches(req, res) {
 }
 
 // ── GET /discover ─────────────────────────────────────
-// Public search: filter by skill name, role, sort order
 async function discover(req, res) {
   const { skill, role, sort = 'level', page = 1, limit = 20 } = req.query;
-  const offset = (parseInt(page) - 1) * parseInt(limit);
-  const viewerId = req.user?.id;  // optional (auth middleware may be skipped)
+  const offset   = (parseInt(page) - 1) * parseInt(limit);
+  const viewerId = req.user?.id ? parseInt(req.user.id) : null;
 
   try {
-    let baseQuery = `
+    // Build params array — viewerId goes in as a proper parameter
+    const params = [];
+
+    // Base SELECT — conditionally include match_score
+    let selectClause = `
       SELECT
         u.id, u.display_name, u.username, u.role_title,
         u.avatar_initials, u.avatar_color, u.level, u.xp,
@@ -69,26 +68,29 @@ async function discover(req, res) {
           ORDER BY s.level DESC
         ) FILTER (WHERE s.id IS NOT NULL), '[]') AS skills,
         (SELECT COUNT(*) FROM vouches WHERE recipient_id=u.id)::int AS vouch_count
-        ${viewerId ? `, (SELECT score FROM matches WHERE user_a_id=${viewerId} AND user_b_id=u.id) AS match_score` : ''}
-      FROM users u
-      LEFT JOIN skills s ON s.user_id = u.id
-      ${viewerId ? `WHERE u.id != ${viewerId}` : 'WHERE 1=1'}
     `;
 
-    const params = [];
+    // ✅ Fixed: viewerId as parameterized value, not string interpolation
+    if (viewerId) {
+      params.push(viewerId);
+      selectClause += `,
+        (SELECT score FROM matches WHERE user_a_id=$${params.length} AND user_b_id=u.id) AS match_score`;
+    }
+
+    let whereClause = 'WHERE 1=1';
+    if (viewerId) {
+      params.push(viewerId);
+      whereClause += ` AND u.id != $${params.length}`;
+    }
 
     if (skill) {
       params.push(`%${skill.toLowerCase()}%`);
-      baseQuery += ` AND u.id IN (
-        SELECT user_id FROM skills WHERE LOWER(name) LIKE $${params.length}
-      )`;
+      whereClause += ` AND u.id IN (SELECT user_id FROM skills WHERE LOWER(name) LIKE $${params.length})`;
     }
     if (role) {
       params.push(`%${role.toLowerCase()}%`);
-      baseQuery += ` AND LOWER(u.role_title) LIKE $${params.length}`;
+      whereClause += ` AND LOWER(u.role_title) LIKE $${params.length}`;
     }
-
-    baseQuery += ' GROUP BY u.id';
 
     const orderMap = {
       level:   'u.level DESC',
@@ -96,12 +98,22 @@ async function discover(req, res) {
       match:   viewerId ? 'match_score DESC NULLS LAST' : 'u.level DESC',
       newest:  'u.created_at DESC',
     };
-    baseQuery += ` ORDER BY ${orderMap[sort] || orderMap.level}`;
+    const orderClause = orderMap[sort] || orderMap.level;
 
     params.push(parseInt(limit), offset);
-    baseQuery += ` LIMIT $${params.length - 1} OFFSET $${params.length}`;
+    const limitClause = `LIMIT $${params.length - 1} OFFSET $${params.length}`;
 
-    const { rows } = await pool.query(baseQuery, params);
+    const fullQuery = `
+      ${selectClause}
+      FROM users u
+      LEFT JOIN skills s ON s.user_id = u.id
+      ${whereClause}
+      GROUP BY u.id
+      ORDER BY ${orderClause}
+      ${limitClause}
+    `;
+
+    const { rows } = await pool.query(fullQuery, params);
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -110,7 +122,6 @@ async function discover(req, res) {
 }
 
 // ── GET /users/:userId/profile ────────────────────────
-// Full public profile — user + skills + vouch count
 async function getProfile(req, res) {
   const userId = parseInt(req.params.userId);
   try {
@@ -136,8 +147,8 @@ async function getProfile(req, res) {
     ]);
 
     res.json({
-      user: userRes.rows[0],
-      skills: skillsRes.rows,
+      user:         userRes.rows[0],
+      skills:       skillsRes.rows,
       total_vouches: vouchCountRes.rows[0].total,
     });
   } catch (err) {

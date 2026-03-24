@@ -872,95 +872,79 @@ const svgEl = document.getElementById('treesvg');
 const W = svgEl.clientWidth || 700;
 const H = svgEl.clientHeight || 560;
 
-// Initial data — will be replaced by API
-let nodes = [];
-let links = [];
+// Tree data — populated from API or fallback
+let nodes = [
+  { id:'JavaScript', level:5, color:'#E63B3B', vouches:12 },
+  { id:'React',      level:4, color:'#5C3FB0', vouches:8  },
+  { id:'Node',       level:4, color:'#1A7FC2', vouches:5  },
+  { id:'SQL',        level:3, color:'#2A9B7A', vouches:3  },
+  { id:'Docker',     level:3, color:'#F5C842', vouches:2  },
+];
+let links = [
+  { source:'JavaScript', target:'React'  },
+  { source:'JavaScript', target:'Node'   },
+  { source:'Node',       target:'SQL'    },
+  { source:'Node',       target:'Docker' },
+];
 
-// ── Nav + profile load ───────────────────────────────
-(async () => {
-  if (API.isLoggedIn()) {
-    try {
-      const user = await API.me();
-      localStorage.setItem('sf_user_id', user.id);
-      document.getElementById('navAuthBtn').textContent = user.display_name.split(' ')[0].toUpperCase();
-      await loadProfile(user.id);
-    } catch { API.logout(); render(); }
-  } else {
-    document.getElementById('navAuthBtn').addEventListener('click', () => AuthModal.show());
-    render(); // render empty tree for guests
-  }
-})();
-
-document.addEventListener('sf:login', async e => {
-  document.getElementById('navAuthBtn').textContent = e.detail.display_name.split(' ')[0].toUpperCase();
-  await loadProfile(e.detail.id);
+// ── Nav auth ────────────────────────────────────────
+document.getElementById('navAuthBtn').addEventListener('click', () => {
+  if (typeof AuthModal !== 'undefined') AuthModal.show();
 });
 
-async function loadProfile(userId) {
+// ── Load profile from API ────────────────────────────
+async function loadProfile() {
   try {
-    const [profile, tree, vouches] = await Promise.all([
-      API.getProfile(userId),
-      API.getSkillTree(userId),
-      API.getVouches(userId),
-    ]);
+    const userId = localStorage.getItem('sf_user_id') || 1;
+    const res = await fetch(`http://localhost:3001/api/users/${userId}/profile`, { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
 
-    // Update header text
-    document.querySelector('.profile-name').textContent = profile.user.display_name.toUpperCase();
-    document.querySelector('.profile-title').textContent = `◆ ${profile.user.role_title || 'Developer'} · Open to work`;
-    if (profile.user.bio) document.querySelector('.profile-bio').textContent = `"${profile.user.bio}"`;
-    document.querySelector('.avatar').textContent = profile.user.avatar_initials || '??';
+    // Update header
+    document.querySelector('.profile-name').textContent = data.user.display_name.toUpperCase();
+    document.querySelector('.profile-title').textContent = `◆ ${data.user.role_title || 'Developer'} · Open to work`;
+    if (data.user.bio) document.querySelector('.profile-bio').textContent = `"${data.user.bio}"`;
+    document.querySelector('.avatar').textContent = data.user.avatar_initials || '??';
+    document.getElementById('vs').textContent = data.total_vouches;
+    document.getElementById('ss').textContent = data.skills.length;
 
-    // Update stats
-    document.getElementById('vs').textContent = profile.total_vouches;
-    document.getElementById('ss').textContent = tree.nodes.length;
-
-    // Build tree data
-    nodes = tree.nodes.map(n => ({
-      id:      n.name,
-      level:   n.level,
-      color:   n.color,
-      vouches: n.vouch_count,
-      _dbId:   n.id,
-    }));
-    links = tree.edges.map(e => ({
-      source: nodes.find(n => n._dbId === e.source)?.id || e.source,
-      target: nodes.find(n => n._dbId === e.target)?.id || e.target,
-    }));
-
-    // Update vouches sidebar
-    const vouchList = document.querySelector('.vouch-list');
-    if (vouchList && vouches.length > 0) {
-      vouchList.innerHTML = vouches.slice(0,3).map(v => `
-        <div class="vouch-item">
-          <div class="vouch-av" style="background:${v.avatar_color||'#E63B3B'}">${v.avatar_initials||'??'}</div>
-          <div class="vouch-text">
-            <div class="vouch-name">${v.voucher_name}</div>
-            <div class="vouch-skill"><span class="vouch-check">✓</span> Vouched ${v.skill_name} · Lv.${v.skill_level}</div>
-            <div class="vouch-time">${timeAgo(v.created_at)}</div>
-          </div>
-        </div>
-      `).join('');
+    // Load tree
+    const treeRes = await fetch(`http://localhost:3001/api/users/${userId}/skills`, { signal: AbortSignal.timeout(3000) });
+    if (treeRes.ok) {
+      const tree = await treeRes.json();
+      if (tree.nodes && tree.nodes.length > 0) {
+        nodes = tree.nodes.map(n => ({ id: n.name, level: n.level, color: n.color, vouches: n.vouch_count, _dbId: n.id }));
+        links = tree.edges.map(e => ({
+          source: nodes.find(n => n._dbId === e.source)?.id || e.source,
+          target: nodes.find(n => n._dbId === e.target)?.id || e.target,
+        }));
+      }
     }
 
-    render();
+    // Load vouches sidebar
+    const vouchRes = await fetch(`http://localhost:3001/api/users/${userId}/vouches`, { signal: AbortSignal.timeout(3000) });
+    if (vouchRes.ok) {
+      const vouches = await vouchRes.json();
+      const vouchList = document.querySelector('.vouch-list');
+      if (vouchList && vouches.length > 0) {
+        vouchList.innerHTML = vouches.slice(0, 3).map(v => `
+          <div class="vouch-item">
+            <div class="vouch-av" style="background:${v.avatar_color || '#E63B3B'}">${v.avatar_initials || '??'}</div>
+            <div class="vouch-text">
+              <div class="vouch-name">${v.voucher_name}</div>
+              <div class="vouch-skill"><span class="vouch-check">✓</span> Vouched ${v.skill_name} · Lv.${v.skill_level}</div>
+              <div class="vouch-time">${timeAgo(v.created_at)}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    console.log('✅ Profile loaded from API');
   } catch (err) {
-    console.error('Profile load failed:', err);
-    // Fall back to demo data so page still looks good
-    nodes = [
-      { id:'JavaScript', level:5, color:'#E63B3B', vouches:12 },
-      { id:'React',      level:4, color:'#5C3FB0', vouches:8  },
-      { id:'Node',       level:4, color:'#1A7FC2', vouches:5  },
-      { id:'SQL',        level:3, color:'#2A9B7A', vouches:3  },
-      { id:'Docker',     level:3, color:'#F5C842', vouches:2  },
-    ];
-    links = [
-      { source:'JavaScript', target:'React' },
-      { source:'JavaScript', target:'Node'  },
-      { source:'Node',       target:'SQL'   },
-      { source:'Node',       target:'Docker'},
-    ];
-    render();
+    console.warn('API unavailable — using demo data:', err.message);
   }
+  render();
 }
 
 function timeAgo(dateStr) {
@@ -968,8 +952,8 @@ function timeAgo(dateStr) {
   const days = Math.floor(diff / 86400000);
   if (days === 0) return 'today';
   if (days === 1) return '1 day ago';
-  if (days < 7)  return `${days} days ago`;
-  return `${Math.floor(days/7)} week${Math.floor(days/7)>1?'s':''} ago`;
+  if (days < 7) return `${days} days ago`;
+  return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`;
 }
 
 // State
@@ -1257,9 +1241,14 @@ document.getElementById('addSkillBtn').addEventListener('click', () => {
   render();
   flashSFX('NEW SKILL!');
 
-  // Save to API if logged in
-  if (API.isLoggedIn()) {
-    API.addSkill(name, level, selectedColor).catch(console.error);
+  // Save to API if backend is running
+  const userId = localStorage.getItem('sf_user_id');
+  if (userId) {
+    fetch('http://localhost:3001/api/skills', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('sf_token') || ''}` },
+      body: JSON.stringify({ name, level, color: selectedColor })
+    }).catch(() => {}); // silent fail if backend offline
   }
   document.getElementById('modal').classList.remove('open');
   document.getElementById('skillName').value = '';
@@ -1295,6 +1284,8 @@ function renderSkillList() {
 /* ══════════════════════════════════════
    INIT
 ══════════════════════════════════════ */
+loadProfile();
+
 // Animate stat bars on load
 setTimeout(() => {
   document.querySelectorAll('.bar-fill').forEach(b => {

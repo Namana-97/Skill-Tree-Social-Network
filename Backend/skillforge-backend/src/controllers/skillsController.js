@@ -1,9 +1,23 @@
+const { body, validationResult } = require('express-validator');
 const pool = require('../db/pool');
 
+// ── Validation rules ──────────────────────────────────
+const addSkillRules = [
+  body('name').trim().notEmpty().isLength({ max: 80 }).withMessage('Skill name required (max 80 chars).'),
+  body('level').isInt({ min: 1, max: 5 }).withMessage('Level must be between 1 and 5.'),
+  body('color').optional().matches(/^#[0-9A-Fa-f]{6}$/).withMessage('Color must be a valid hex code.'),
+];
+
+const updateSkillRules = [
+  body('level').optional().isInt({ min: 1, max: 5 }).withMessage('Level must be between 1 and 5.'),
+  body('color').optional().matches(/^#[0-9A-Fa-f]{6}$/).withMessage('Color must be a valid hex code.'),
+];
+
 // ── GET /users/:userId/skills ─────────────────────────
-// Returns all skill nodes + edges for a user's tree
 async function getSkillTree(req, res) {
   const userId = parseInt(req.params.userId);
+  if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID.' });
+
   try {
     const [nodesRes, edgesRes] = await Promise.all([
       pool.query(
@@ -18,12 +32,10 @@ async function getSkillTree(req, res) {
       ),
       pool.query(
         `SELECT se.id, se.source_skill_id AS source, se.target_skill_id AS target
-         FROM skill_edges se
-         WHERE se.user_id = $1`,
+         FROM skill_edges se WHERE se.user_id = $1`,
         [userId]
       )
     ]);
-
     res.json({ nodes: nodesRes.rows, edges: edgesRes.rows });
   } catch (err) {
     console.error(err);
@@ -32,31 +44,31 @@ async function getSkillTree(req, res) {
 }
 
 // ── POST /skills ──────────────────────────────────────
-// Add a new skill node
 async function addSkill(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
+
   const { name, level, color, proof_url } = req.body;
   const userId = req.user.id;
 
   try {
     const { rows } = await pool.query(
       `INSERT INTO skills (user_id, name, level, color, proof_url)
-       VALUES ($1,$2,$3,$4,$5)
-       RETURNING *`,
-      [userId, name, level, color || '#E63B3B', proof_url || null]
+       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [userId, name.trim(), level, color || '#E63B3B', proof_url || null]
     );
 
-    // Award XP: level * 20
     await pool.query(
       'UPDATE users SET xp = xp + $1 WHERE id = $2',
       [level * 20, userId]
     );
 
-    // Recompute matches asynchronously (don't await — fire and forget)
     recomputeMatches(userId).catch(console.error);
-
     res.status(201).json(rows[0]);
   } catch (err) {
-    if (err.code === '23505') {  // unique violation
+    if (err.code === '23505') {
       return res.status(409).json({ error: 'You already have this skill. Update it instead.' });
     }
     console.error(err);
@@ -65,33 +77,40 @@ async function addSkill(req, res) {
 }
 
 // ── PUT /skills/:skillId ──────────────────────────────
-// Update level / color / proof for an existing skill (owner only)
 async function updateSkill(req, res) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ error: errors.array()[0].msg });
+  }
+
   const skillId = parseInt(req.params.skillId);
+  if (isNaN(skillId)) return res.status(400).json({ error: 'Invalid skill ID.' });
+
   const { level, color, proof_url } = req.body;
   const userId = req.user.id;
 
   try {
-    // Confirm ownership
     const own = await pool.query(
-      'SELECT id, level FROM skills WHERE id=$1 AND user_id=$2',
+      'SELECT id, level, color, proof_url FROM skills WHERE id=$1 AND user_id=$2',
       [skillId, userId]
     );
     if (own.rows.length === 0) {
       return res.status(403).json({ error: 'Not your skill.' });
     }
 
-    const oldLevel = own.rows[0].level;
+    const old = own.rows[0];
+    const newLevel = level ?? old.level;
     const { rows } = await pool.query(
       `UPDATE skills SET level=$1, color=$2, proof_url=$3, updated_at=NOW()
        WHERE id=$4 RETURNING *`,
-      [level ?? oldLevel, color ?? own.rows[0].color, proof_url ?? own.rows[0].proof_url, skillId]
+      [newLevel, color ?? old.color, proof_url ?? old.proof_url, skillId]
     );
 
-    // If level increased, award XP
-    if (level > oldLevel) {
-      const xpGain = (level - oldLevel) * 20;
-      await pool.query('UPDATE users SET xp=xp+$1 WHERE id=$2', [xpGain, userId]);
+    if (newLevel > old.level) {
+      await pool.query(
+        'UPDATE users SET xp=xp+$1 WHERE id=$2',
+        [(newLevel - old.level) * 20, userId]
+      );
     }
 
     recomputeMatches(userId).catch(console.error);
@@ -105,15 +124,14 @@ async function updateSkill(req, res) {
 // ── DELETE /skills/:skillId ───────────────────────────
 async function deleteSkill(req, res) {
   const skillId = parseInt(req.params.skillId);
-  const userId  = req.user.id;
+  if (isNaN(skillId)) return res.status(400).json({ error: 'Invalid skill ID.' });
+
   try {
     const result = await pool.query(
       'DELETE FROM skills WHERE id=$1 AND user_id=$2 RETURNING id',
-      [skillId, userId]
+      [skillId, req.user.id]
     );
-    if (result.rowCount === 0) {
-      return res.status(403).json({ error: 'Not your skill.' });
-    }
+    if (result.rowCount === 0) return res.status(403).json({ error: 'Not your skill.' });
     res.json({ deleted: skillId });
   } catch (err) {
     console.error(err);
@@ -122,16 +140,20 @@ async function deleteSkill(req, res) {
 }
 
 // ── POST /skills/edges ────────────────────────────────
-// Connect two skill nodes
 async function addEdge(req, res) {
   const { source_skill_id, target_skill_id } = req.body;
-  const userId = req.user.id;
+  if (!source_skill_id || !target_skill_id) {
+    return res.status(400).json({ error: 'source_skill_id and target_skill_id required.' });
+  }
+  if (source_skill_id === target_skill_id) {
+    return res.status(400).json({ error: 'Cannot connect a skill to itself.' });
+  }
 
-  // Verify both skills belong to this user
+  const userId = req.user.id;
   try {
     const check = await pool.query(
-      'SELECT id FROM skills WHERE id IN ($1,$2) AND user_id=$3',
-      [source_skill_id, target_skill_id, userId]
+      'SELECT id FROM skills WHERE id = ANY($1::int[]) AND user_id=$2',
+      [[source_skill_id, target_skill_id], userId]
     );
     if (check.rows.length < 2) {
       return res.status(403).json({ error: 'Skills must both belong to you.' });
@@ -152,11 +174,12 @@ async function addEdge(req, res) {
 // ── DELETE /skills/edges/:edgeId ──────────────────────
 async function deleteEdge(req, res) {
   const edgeId = parseInt(req.params.edgeId);
-  const userId = req.user.id;
+  if (isNaN(edgeId)) return res.status(400).json({ error: 'Invalid edge ID.' });
+
   try {
     const result = await pool.query(
       'DELETE FROM skill_edges WHERE id=$1 AND user_id=$2 RETURNING id',
-      [edgeId, userId]
+      [edgeId, req.user.id]
     );
     if (result.rowCount === 0) return res.status(403).json({ error: 'Not your edge.' });
     res.json({ deleted: edgeId });
@@ -167,20 +190,14 @@ async function deleteEdge(req, res) {
 }
 
 // ── INTERNAL: recompute complement scores ─────────────
-// Called after any tree mutation. Runs against all other users.
 async function recomputeMatches(userId) {
-  // Get this user's skill names
   const mine = await pool.query('SELECT name, level FROM skills WHERE user_id=$1', [userId]);
   const mySkills = mine.rows;
-
-  // Get all other users' skills
   const others = await pool.query(
-    `SELECT s.user_id, s.name, s.level FROM skills s
-     WHERE s.user_id != $1`,
+    'SELECT s.user_id, s.name, s.level FROM skills s WHERE s.user_id != $1',
     [userId]
   );
 
-  // Group by user
   const byUser = {};
   others.rows.forEach(r => {
     if (!byUser[r.user_id]) byUser[r.user_id] = [];
@@ -191,14 +208,12 @@ async function recomputeMatches(userId) {
   const myNames_a = [...myNames];
 
   for (const [otherId, theirSkills] of Object.entries(byUser)) {
-    const theirNames = new Set(theirSkills.map(s => s.name));
+    const theirNames   = new Set(theirSkills.map(s => s.name));
     const theirNames_a = [...theirNames];
-
     const theyFill = theirNames_a.filter(n => !myNames.has(n)).length;
     const youFill  = myNames_a.filter(n => !theirNames.has(n)).length;
     const total    = new Set([...myNames_a, ...theirNames_a]).size;
-
-    const score = total > 0 ? Math.round(((theyFill + youFill) / total) * 100) : 0;
+    const score    = total > 0 ? Math.round(((theyFill + youFill) / total) * 100) : 0;
 
     await pool.query(
       `INSERT INTO matches (user_a_id, user_b_id, score)
@@ -209,4 +224,8 @@ async function recomputeMatches(userId) {
   }
 }
 
-module.exports = { getSkillTree, addSkill, updateSkill, deleteSkill, addEdge, deleteEdge };
+module.exports = {
+  getSkillTree, addSkill, addSkillRules,
+  updateSkill, updateSkillRules,
+  deleteSkill, addEdge, deleteEdge
+};

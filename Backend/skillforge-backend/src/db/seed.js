@@ -29,50 +29,43 @@ async function seed() {
       RETURNING id, username
     `, [hash]);
 
-    // Map username → id
     const uid = {};
     users.forEach(u => uid[u.username] = u.id);
     console.log('  ✓ Users inserted:', Object.keys(uid).join(', '));
 
     // ── 2. SKILLS ─────────────────────────────────
     const skillDefs = [
-      // Aryan
       { u:'aryan', name:'JavaScript', level:5, color:'#E63B3B' },
       { u:'aryan', name:'React',      level:4, color:'#5C3FB0' },
       { u:'aryan', name:'Node',       level:4, color:'#1A7FC2' },
       { u:'aryan', name:'SQL',        level:3, color:'#2A9B7A' },
       { u:'aryan', name:'Docker',     level:3, color:'#F5C842' },
-      // Lisa
-      { u:'lisa', name:'Python',      level:5, color:'#E63B3B' },
-      { u:'lisa', name:'TensorFlow',  level:4, color:'#5C3FB0' },
-      { u:'lisa', name:'MLOps',       level:4, color:'#2A9B7A' },
-      { u:'lisa', name:'SQL',         level:3, color:'#1A7FC2' },
-      { u:'lisa', name:'FastAPI',     level:3, color:'#F5C842' },
-      // James
+      { u:'lisa',  name:'Python',     level:5, color:'#E63B3B' },
+      { u:'lisa',  name:'TensorFlow', level:4, color:'#5C3FB0' },
+      { u:'lisa',  name:'MLOps',      level:4, color:'#2A9B7A' },
+      { u:'lisa',  name:'SQL',        level:3, color:'#1A7FC2' },
+      { u:'lisa',  name:'FastAPI',    level:3, color:'#F5C842' },
       { u:'james', name:'Kubernetes', level:5, color:'#E63B3B' },
       { u:'james', name:'Terraform',  level:4, color:'#1A7FC2' },
       { u:'james', name:'Go',         level:4, color:'#2A9B7A' },
       { u:'james', name:'Linux',      level:3, color:'#F5C842' },
       { u:'james', name:'AWS',        level:3, color:'#5C3FB0' },
-      // Yuki
-      { u:'yuki', name:'Vue',         level:5, color:'#2A9B7A' },
-      { u:'yuki', name:'TypeScript',  level:4, color:'#1A7FC2' },
-      { u:'yuki', name:'CSS',         level:4, color:'#E8849A' },
-      { u:'yuki', name:'Figma',       level:3, color:'#5C3FB0' },
-      // Sofia
+      { u:'yuki',  name:'Vue',        level:5, color:'#2A9B7A' },
+      { u:'yuki',  name:'TypeScript', level:4, color:'#1A7FC2' },
+      { u:'yuki',  name:'CSS',        level:4, color:'#E8849A' },
+      { u:'yuki',  name:'Figma',      level:3, color:'#5C3FB0' },
       { u:'sofia', name:'React',      level:5, color:'#5C3FB0' },
       { u:'sofia', name:'Next.js',    level:4, color:'#1A1A1A' },
       { u:'sofia', name:'CSS',        level:4, color:'#E8849A' },
       { u:'sofia', name:'GraphQL',    level:3, color:'#E63B3B' },
-      // Chen
-      { u:'chen', name:'Rust',        level:4, color:'#E63B3B' },
-      { u:'chen', name:'Go',          level:4, color:'#2A9B7A' },
-      { u:'chen', name:'PostgreSQL',  level:5, color:'#1A7FC2' },
-      { u:'chen', name:'Redis',       level:3, color:'#F5C842' },
-      { u:'chen', name:'gRPC',        level:3, color:'#5C3FB0' },
+      { u:'chen',  name:'Rust',       level:4, color:'#E63B3B' },
+      { u:'chen',  name:'Go',         level:4, color:'#2A9B7A' },
+      { u:'chen',  name:'PostgreSQL', level:5, color:'#1A7FC2' },
+      { u:'chen',  name:'Redis',      level:3, color:'#F5C842' },
+      { u:'chen',  name:'gRPC',       level:3, color:'#5C3FB0' },
     ];
 
-    const skillIds = {};  // "username:skillname" → id
+    const skillIds = {};
     for (const s of skillDefs) {
       if (!uid[s.u]) continue;
       const { rows } = await client.query(`
@@ -87,21 +80,18 @@ async function seed() {
 
     // ── 3. SKILL EDGES ────────────────────────────
     const edges = [
-      // Aryan
-      { u:'aryan', from:'JavaScript', to:'React'  },
-      { u:'aryan', from:'JavaScript', to:'Node'   },
-      { u:'aryan', from:'Node',       to:'SQL'    },
-      { u:'aryan', from:'Node',       to:'Docker' },
-      // Lisa
+      { u:'aryan', from:'JavaScript', to:'React'      },
+      { u:'aryan', from:'JavaScript', to:'Node'       },
+      { u:'aryan', from:'Node',       to:'SQL'        },
+      { u:'aryan', from:'Node',       to:'Docker'     },
       { u:'lisa',  from:'Python',     to:'TensorFlow' },
       { u:'lisa',  from:'Python',     to:'MLOps'      },
       { u:'lisa',  from:'Python',     to:'SQL'        },
       { u:'lisa',  from:'TensorFlow', to:'FastAPI'    },
-      // James
-      { u:'james', from:'Kubernetes', to:'Terraform' },
-      { u:'james', from:'Kubernetes', to:'Go'        },
-      { u:'james', from:'Go',         to:'Linux'     },
-      { u:'james', from:'Terraform',  to:'AWS'       },
+      { u:'james', from:'Kubernetes', to:'Terraform'  },
+      { u:'james', from:'Kubernetes', to:'Go'         },
+      { u:'james', from:'Go',         to:'Linux'      },
+      { u:'james', from:'Terraform',  to:'AWS'        },
     ];
 
     for (const e of edges) {
@@ -116,13 +106,10 @@ async function seed() {
     console.log(`  ✓ ${edges.length} skill edges inserted`);
 
     // ── 4. VOUCHES ────────────────────────────────
-    // Sofia vouches Aryan's React (she holds React Lv.5 >= Aryan's Lv.4 ✓)
-    // James vouches Aryan's Node  (James holds Go/Linux but not Node — skipping in real app)
-    // For seed we just insert directly
     const vouchData = [
-      { from:'sofia', to:'aryan', skill:'aryan:React',  msg:'Really solid React fundamentals.' },
-      { from:'lisa',  to:'aryan', skill:'aryan:Node',   msg:'Helped me with my FastAPI → Node migration.' },
-      { from:'chen',  to:'aryan', skill:'aryan:SQL',    msg:'Writes clean, well-indexed queries.' },
+      { from:'sofia', to:'aryan', skill:'aryan:React', msg:'Really solid React fundamentals.'              },
+      { from:'lisa',  to:'aryan', skill:'aryan:Node',  msg:'Helped me with my FastAPI → Node migration.'  },
+      { from:'chen',  to:'aryan', skill:'aryan:SQL',   msg:'Writes clean, well-indexed queries.'           },
     ];
 
     for (const v of vouchData) {
@@ -135,23 +122,35 @@ async function seed() {
     }
     console.log(`  ✓ ${vouchData.length} vouches inserted`);
 
-    // ── 5. PRE-COMPUTE MATCHES for Aryan ─────────
-    // Simple complement score: (skills they have that you don't) / total unique skills * 100
-    const aryanSkills = skillDefs.filter(s=>s.u==='aryan').map(s=>s.name);
-    const others = ['lisa','james','yuki','sofia','chen'];
-    for (const other of others) {
-      const theirSkills = skillDefs.filter(s=>s.u===other).map(s=>s.name);
-      const theyFill = theirSkills.filter(s=>!aryanSkills.includes(s)).length;
-      const youFill  = aryanSkills.filter(s=>!theirSkills.includes(s)).length;
-      const total    = new Set([...aryanSkills,...theirSkills]).size;
-      const score    = Math.round(((theyFill + youFill) / total) * 100);
-      if (!uid[other]) continue;
-      await client.query(`
-        INSERT INTO matches (user_a_id, user_b_id, score)
-        VALUES ($1,$2,$3) ON CONFLICT (user_a_id, user_b_id) DO UPDATE SET score=$3, computed_at=NOW()
-      `, [uid['aryan'], uid[other], score]);
+    // ── 5. PRE-COMPUTE MATCHES — ALL user pairs ───
+    // FIX: original only computed for Aryan — now computes for everyone
+    const allUsernames = Object.keys(uid);
+    let matchCount = 0;
+
+    for (let i = 0; i < allUsernames.length; i++) {
+      for (let j = 0; j < allUsernames.length; j++) {
+        if (i === j) continue;
+        const userA = allUsernames[i];
+        const userB = allUsernames[j];
+
+        const aSkills = skillDefs.filter(s => s.u === userA).map(s => s.name);
+        const bSkills = skillDefs.filter(s => s.u === userB).map(s => s.name);
+
+        const theyFill = bSkills.filter(s => !aSkills.includes(s)).length;
+        const youFill  = aSkills.filter(s => !bSkills.includes(s)).length;
+        const total    = new Set([...aSkills, ...bSkills]).size;
+        const score    = total > 0 ? Math.round(((theyFill + youFill) / total) * 100) : 0;
+
+        if (!uid[userA] || !uid[userB]) continue;
+        await client.query(`
+          INSERT INTO matches (user_a_id, user_b_id, score)
+          VALUES ($1,$2,$3)
+          ON CONFLICT (user_a_id, user_b_id) DO UPDATE SET score=$3, computed_at=NOW()
+        `, [uid[userA], uid[userB], score]);
+        matchCount++;
+      }
     }
-    console.log('  ✓ Match scores computed for Aryan');
+    console.log(`  ✓ ${matchCount} match scores computed (all user pairs)`);
 
     await client.query('COMMIT');
     console.log('✅  Seed complete!');
