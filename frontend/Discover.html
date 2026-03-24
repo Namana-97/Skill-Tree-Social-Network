@@ -521,26 +521,29 @@ nav { background:var(--ink); display:flex; justify-content:space-between; align-
 </div>
 <div class="page-edge"></div>
 
+
 <script src="api.js"></script>
 <script src="auth-modal.js"></script>
 <script>
 gsap.registerPlugin(ScrollTrigger);
 
-/* ══ CURSOR ══ */
-const cur = document.getElementById('cur');
-document.addEventListener('mousemove', e => {
-  cur.style.left = e.clientX + 'px';
-  cur.style.top  = e.clientY + 'px';
-});
-
-/* ══ ALL STATE — declared first so nothing is undefined ══ */
-let MY_SKILLS = [];
-let ALL_DEVELOPERS = [];
-let filteredDevs = [];
-let activeDevId = null;
-let activeSkillFilter = [];
-let activeFilterType = 'all';
-let activeSortType = 'match';
+const state = {
+  me: null,
+  mySkills: [],
+  matches: [],
+  matchById: new Map(),
+  allDevelopers: [],
+  filteredDevs: [],
+  activeDevId: null,
+  activeSkillFilter: [],
+  activeFilterType: 'all',
+  activeSortType: 'match',
+  searchQuery: '',
+  page: 1,
+  limit: 20,
+  loading: false,
+  hasMore: true,
+};
 
 const FALLBACK_DEVS = [
   { id:1, name:'Lisa Park', initials:'LP', role:'ML Engineer', level:38, avBg:'#5C3FB0', match:94, vouches:18,
@@ -585,74 +588,173 @@ const FALLBACK_DEVS = [
     quote:'"Full-stack means I know exactly which part I broke."' },
 ];
 
-/* ══ COUNT UP ══ */
-function countUp(id, target) {
-  const el = document.getElementById(id);
-  let v = 0; const s = target / 60;
-  const t = setInterval(() => { v += s; if (v >= target) { v = target; clearInterval(t); } el.textContent = Math.floor(v); }, 16);
+const $ = (id) => document.getElementById(id);
+const escapeHtml = (str = '') => String(str)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+function setNavLabel() {
+  $('navAuthBtn').textContent = state.me?.display_name
+    ? state.me.display_name.split(' ')[0].toUpperCase()
+    : 'LOGIN';
 }
-setTimeout(() => { countUp('ds1', 12847); countUp('ds2', 84200); countUp('ds3', 347); }, 300);
 
-/* ══ NAV AUTH ══ */
-document.getElementById('navAuthBtn').addEventListener('click', () => {
-  if (typeof AuthModal !== 'undefined') AuthModal.show();
-  else alert('Login coming soon!');
-});
+function setAuthButtonBehavior() {
+  $('navAuthBtn').onclick = () => {
+    if (API.isLoggedIn()) API.logout();
+    else AuthModal.show();
+  };
+}
 
-/* ══ LOAD DATA — API with fallback ══ */
-async function loadDiscover() {
-  try {
-    const res = await fetch('http://localhost:3001/api/discover?sort=match&limit=20', { signal: AbortSignal.timeout(3000) });
-    if (!res.ok) throw new Error('API error');
-    const devs = await res.json();
-    if (!Array.isArray(devs) || devs.length === 0) throw new Error('Empty response');
-    ALL_DEVELOPERS = devs.map(d => ({
-      id:       d.id,
-      name:     d.display_name,
-      initials: d.avatar_initials || d.display_name.split(' ').map(w => w[0]).join('').slice(0, 2),
-      role:     d.role_title || 'Developer',
-      level:    d.level || 1,
-      avBg:     d.avatar_color || '#E63B3B',
-      match:    Math.round(d.match_score || 0),
-      vouches:  d.vouch_count || 0,
-      skills:   (d.skills || []).map(s => ({ id: s.name, level: s.level, color: s.color })),
-      links:    [],
-      gaps:     (d.fills_your_gaps || []).map(s => s.name),
-      theyNeed: (d.you_fill_theirs || []).map(s => s.name),
-      quote:    `"${d.role_title || 'Developer'} · Level ${d.level}"`,
-    }));
-    console.log(`✅ Loaded ${ALL_DEVELOPERS.length} developers from API`);
-  } catch (err) {
-    console.warn('API unavailable — using demo data:', err.message);
-    ALL_DEVELOPERS = FALLBACK_DEVS;
-  }
-  filteredDevs = [...ALL_DEVELOPERS];
+function countUp(id, target) {
+  const el = $(id);
+  let v = 0;
+  const step = target / 60;
+  const timer = setInterval(() => {
+    v += step;
+    if (v >= target) {
+      v = target;
+      clearInterval(timer);
+    }
+    el.textContent = Math.floor(v);
+  }, 16);
+}
+
+function showTooltip(dev) {
+  $('tt-name').textContent = dev.name;
+  $('tt-text').textContent = dev.quote;
+  $('tooltip').style.display = 'block';
+  document.addEventListener('mousemove', moveTooltip);
+}
+
+function hideTooltip() {
+  $('tooltip').style.display = 'none';
+  document.removeEventListener('mousemove', moveTooltip);
+}
+
+function moveTooltip(e) {
+  const tt = $('tooltip');
+  tt.style.left = (e.clientX + 20) + 'px';
+  tt.style.top = (e.clientY - 10) + 'px';
+}
+
+function flashSFX(text, color = '#F5C842') {
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;top:45%;left:50%;transform:translate(-50%,-50%) rotate(-6deg);font-family:'Bangers',cursive;font-size:4.5rem;letter-spacing:4px;color:${color};-webkit-text-stroke:3px #1A1A1A;text-shadow:5px 5px 0 rgba(26,26,26,.3);pointer-events:none;z-index:9000;`;
+  el.textContent = text;
+  document.body.appendChild(el);
+  gsap.fromTo(el, { scale: .4, opacity: 0 }, { scale: 1.1, opacity: 1, duration: .25, ease: 'back.out(2)' });
+  gsap.to(el, { scale: 1.3, opacity: 0, duration: .4, delay: .4, ease: 'power2.in', onComplete: () => el.remove() });
+}
+
+function getMatchDetails(id) {
+  return state.matchById.get(Number(id)) || null;
+}
+
+function normalizeDevFromApi(d) {
+  const skills = Array.isArray(d.skills) ? d.skills.map(s => ({
+    id: s.name,
+    level: s.level,
+    color: s.color || '#1A7FC2'
+  })) : [];
+  return {
+    id: d.id,
+    name: d.display_name || d.name || 'Unknown',
+    initials: d.avatar_initials || (d.display_name || d.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+    role: d.role_title || 'Developer',
+    level: d.level || 1,
+    avBg: d.avatar_color || '#E63B3B',
+    match: Math.round(d.match_score ?? d.score ?? 0),
+    vouches: d.vouch_count || 0,
+    skills,
+    links: skills.length > 1 ? skills.slice(0, -1).map((s, idx) => ({ s: s.id, t: skills[idx + 1].id })) : [],
+    gaps: (d.fills_your_gaps || d.their_skills || []).map(s => s.name).slice(0, 3),
+    theyNeed: (d.you_fill_theirs || []).map(s => s.name).slice(0, 3),
+    quote: `"${d.role_title || 'Developer'} · Level ${d.level || 1}"`,
+  };
+}
+
+function normalizeMatch(m) {
+  return {
+    id: m.id,
+    name: m.display_name,
+    role: m.role_title || 'Developer',
+    level: m.level || 1,
+    avBg: m.avatar_color || '#E63B3B',
+    initials: m.avatar_initials || (m.display_name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+    match: Math.round(m.score || 0),
+    vouches: m.vouch_count || 0,
+    skills: Array.isArray(m.their_skills) ? m.their_skills.map(s => ({ id: s.name, level: s.level, color: s.color || '#1A7FC2' })) : [],
+    gaps: (m.fills_your_gaps || []).map(s => s.name),
+    theyNeed: (m.you_fill_theirs || []).map(s => s.name),
+    quote: `"${m.role_title || 'Developer'} · Score ${Math.round(m.score || 0)}"`,
+  };
+}
+
+function refreshMatchMap() {
+  state.matchById = new Map(state.matches.map(m => [Number(m.id), m]));
+}
+
+function sortDevelopers(list) {
+  return [...list].sort((a, b) => {
+    if (state.activeSortType === 'match') return b.match - a.match;
+    if (state.activeSortType === 'level') return b.level - a.level;
+    if (state.activeSortType === 'vouches') return b.vouches - a.vouches;
+    return 0;
+  });
+}
+
+function passesActiveFilters(dev) {
+  const q = state.searchQuery.trim().toLowerCase();
+  const textOk = !q || dev.name.toLowerCase().includes(q) || dev.role.toLowerCase().includes(q) || dev.skills.some(s => s.id.toLowerCase().includes(q));
+  const skillsOk = state.activeSkillFilter.length === 0 || state.activeSkillFilter.every(f => dev.skills.some(s => s.id.toLowerCase().includes(f.toLowerCase())));
+
+  let typeOk = true;
+  if (state.activeFilterType === 'complement') typeOk = dev.match >= 70;
+  if (state.activeFilterType === 'mentor') typeOk = state.me ? dev.level >= state.me.level + 3 : dev.match >= 80;
+  if (state.activeFilterType === 'cofounder') typeOk = dev.match >= 55 && dev.match <= 90;
+
+  return textOk && skillsOk && typeOk;
+}
+
+function applyFiltersAndRender() {
+  state.filteredDevs = sortDevelopers(state.allDevelopers.filter(passesActiveFilters));
   renderCards();
   renderMatchList();
-  if (filteredDevs.length > 0) setTimeout(() => selectDev(filteredDevs[0]), 800);
 }
 
-/* ══ MINI D3 TREE in cards ══ */
 function drawMiniTree(svgEl, dev) {
   const W = svgEl.clientWidth || 200;
   const H = 110;
   const svg = d3.select(svgEl).attr('viewBox', `0 0 ${W} ${H}`);
   svg.selectAll('*').remove();
+
   const nodes = dev.skills.map(s => ({ ...s }));
   const links = (dev.links || []).map(l => ({ source: l.s, target: l.t }));
+
+  if (nodes.length === 0) return;
+
   const sim = d3.forceSimulation(nodes)
     .force('link', d3.forceLink(links).id(d => d.id).distance(55))
     .force('charge', d3.forceManyBody().strength(-180))
     .force('center', d3.forceCenter(W / 2, H / 2))
     .force('collision', d3.forceCollide().radius(18))
     .stop();
+
   for (let i = 0; i < 80; i++) sim.tick();
+
   svg.append('g').selectAll('line').data(links).enter().append('line')
     .attr('stroke', 'rgba(255,255,255,0.12)').attr('stroke-width', 1.5)
     .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
     .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+
   const node = svg.append('g').selectAll('g').data(nodes).enter().append('g');
-  node.append('circle').attr('r', d => 8 + d.level * 2.5).attr('fill', d => d.color)
+  node.append('circle')
+    .attr('r', d => 8 + d.level * 2.5)
+    .attr('fill', d => d.color)
     .attr('stroke', '#fff').attr('stroke-width', 1.5)
     .attr('cx', d => d.x).attr('cy', d => d.y);
   node.append('text')
@@ -661,48 +763,181 @@ function drawMiniTree(svgEl, dev) {
     .attr('fill', 'white').attr('font-size', '7').attr('font-weight', '700')
     .attr('font-family', 'Oswald,sans-serif').attr('pointer-events', 'none')
     .text(d => d.id.length > 6 ? d.id.slice(0, 5) + '…' : d.id);
-  if (nodes.length > 0) {
-    const top = nodes.reduce((a, b) => a.level > b.level ? a : b);
-    svg.append('circle').attr('r', 8 + top.level * 2.5 + 6).attr('cx', top.x).attr('cy', top.y)
-      .attr('fill', top.color).attr('opacity', 0.1)
-      .append('animate').attr('attributeName', 'r')
-      .attr('values', `${8 + top.level * 2.5};${8 + top.level * 2.5 + 10};${8 + top.level * 2.5}`)
-      .attr('dur', '2.5s').attr('repeatCount', 'indefinite');
+}
+
+function highlightActiveCard() {
+  document.querySelectorAll('.user-card').forEach(c => {
+    c.style.borderLeft = '';
+    c.style.background = '';
+  });
+  const active = document.querySelector(`.user-card[data-id="${state.activeDevId}"]`);
+  if (active) {
+    active.style.borderLeft = '4px solid #F5C842';
+    active.style.background = '#FFFDF0';
   }
 }
 
-/* ══ RENDER CARDS ══ */
+function makeGaRow(name, pct, color, type, label) {
+  const div = document.createElement('div');
+  div.className = 'ga-row';
+  div.innerHTML = `
+    <span class="ga-skill">${escapeHtml(name)}</span>
+    <div class="ga-bar-track"><div class="ga-bar-fill" data-w="${Math.round(pct * 100)}%" style="background:${color};width:0"></div></div>
+    <span class="ga-type ${type}">${label}</span>
+  `;
+  return div;
+}
+
+function drawOverlap(dev) {
+  const svg = d3.select('#overlapSvg');
+  svg.selectAll('*').remove();
+  const W = $('overlapSvg').clientWidth || 320;
+  const H = 180;
+  const myIds = state.mySkills.map(s => s.id);
+  const theirIds = dev.skills.map(s => s.id);
+  const shared = myIds.filter(s => theirIds.includes(s));
+
+  svg.append('circle').attr('cx', W * 0.38).attr('cy', H / 2).attr('r', 68)
+    .attr('fill', 'rgba(230,59,59,0.08)').attr('stroke', 'rgba(230,59,59,0.3)').attr('stroke-width', 2);
+  svg.append('text').attr('x', W * 0.22).attr('y', H / 2 - 5).attr('text-anchor', 'middle')
+    .attr('fill', 'rgba(230,59,59,0.5)').attr('font-family', 'Bangers,cursive').attr('font-size', '11').text('YOU');
+  svg.append('circle').attr('cx', W * 0.62).attr('cy', H / 2).attr('r', 68)
+    .attr('fill', 'rgba(26,127,194,0.08)').attr('stroke', 'rgba(26,127,194,0.3)').attr('stroke-width', 2);
+  svg.append('text').attr('x', W * 0.78).attr('y', H / 2 - 5).attr('text-anchor', 'middle')
+    .attr('fill', 'rgba(26,127,194,0.5)').attr('font-family', 'Bangers,cursive').attr('font-size', '11')
+    .text(dev.name.split(' ')[0].toUpperCase());
+
+  svg.append('text').attr('x', W * 0.5).attr('y', H / 2 - 8).attr('text-anchor', 'middle')
+    .attr('fill', 'rgba(245,200,66,0.7)').attr('font-family', 'Bangers,cursive').attr('font-size', '10')
+    .text(shared.length > 0 ? shared[0] : 'UNIQUE');
+  if (shared[1]) {
+    svg.append('text').attr('x', W * 0.5).attr('y', H / 2 + 8).attr('text-anchor', 'middle')
+      .attr('fill', 'rgba(245,200,66,0.5)').attr('font-family', 'Bangers,cursive').attr('font-size', '9').text(shared[1]);
+  }
+
+  state.mySkills.filter(s => !theirIds.includes(s.id)).forEach((s, i) => {
+    svg.append('text').attr('x', W * 0.2).attr('y', H / 2 - 20 + i * 18).attr('text-anchor', 'middle')
+      .attr('fill', s.color).attr('font-size', '9').attr('font-family', 'Oswald,sans-serif').attr('font-weight', '700').text(s.id);
+  });
+  dev.skills.filter(s => !myIds.includes(s.id)).forEach((s, i) => {
+    svg.append('text').attr('x', W * 0.8).attr('y', H / 2 - 20 + i * 18).attr('text-anchor', 'middle')
+      .attr('fill', s.color).attr('font-size', '9').attr('font-family', 'Oswald,sans-serif').attr('font-weight', '700')
+      .text(s.id.length > 7 ? s.id.slice(0, 6) + '…' : s.id);
+  });
+}
+
+function drawGapAnalysis(dev) {
+  const rows = $('gaRows');
+  rows.innerHTML = '';
+  const myIds = state.mySkills.map(s => s.id);
+  const theirIds = dev.skills.map(s => s.id);
+
+  const details = getMatchDetails(dev.id);
+  const fillsYourGaps = details?.fills_your_gaps?.length ? details.fills_your_gaps.map(s => s.name) : dev.gaps || [];
+  const youFillTheirs = details?.you_fill_theirs?.length ? details.you_fill_theirs.map(s => s.name) : dev.theyNeed || [];
+
+  (dev.skills || []).forEach(s => {
+    if (!myIds.includes(s.id)) rows.appendChild(makeGaRow(s.id, s.level / 5, s.color, 'they', 'FILLS YOUR GAP'));
+  });
+  state.mySkills.forEach(s => {
+    if (!theirIds.includes(s.id)) rows.appendChild(makeGaRow(s.id, s.level / 5, s.color, 'you', 'YOU FILL THEIRS'));
+  });
+  state.mySkills.filter(s => theirIds.includes(s.id)).forEach(s => {
+    rows.appendChild(makeGaRow(s.id, s.level / 5, s.color, 'both', 'SHARED'));
+  });
+
+  if (!rows.children.length) {
+    rows.innerHTML = '<div style="font-family:\'Permanent Marker\',cursive;font-size:.78rem;color:rgba(245,240,232,.2);text-align:center;padding:1rem 0;">No overlap yet</div>';
+  }
+
+  setTimeout(() => {
+    rows.querySelectorAll('.ga-bar-fill').forEach(b => {
+      const w = b.dataset.w;
+      b.style.width = '0';
+      setTimeout(() => { b.style.width = w; }, 50);
+    });
+  }, 50);
+}
+
+function renderMatchList() {
+  const list = $('matchList');
+  list.innerHTML = '';
+  const source = state.matches.length ? state.matches : state.filteredDevs.slice().sort((a, b) => b.match - a.match).slice(0, 5);
+  source.slice(0, 5).forEach(dev => {
+    const div = document.createElement('div');
+    div.className = 'ml-item' + (dev.id === state.activeDevId ? ' active-item' : '');
+    div.dataset.id = dev.id;
+    const pctColor = dev.match >= 85 ? '#2A9B7A' : dev.match >= 70 ? '#F5C842' : 'rgba(245,240,232,.4)';
+    div.innerHTML = `
+      <div class="ml-av" style="background:${dev.avBg}">${dev.initials}</div>
+      <div style="flex:1"><div class="ml-name">${escapeHtml(dev.name)}</div><div class="ml-role">${escapeHtml(dev.role)}</div></div>
+      <div class="ml-pct" style="color:${pctColor}">${dev.match}%</div>
+    `;
+    div.addEventListener('click', () => { selectDev(dev); scrollToCard(dev.id); });
+    div.addEventListener('mouseenter', () => document.body.classList.add('hov'));
+    div.addEventListener('mouseleave', () => document.body.classList.remove('hov'));
+    list.appendChild(div);
+  });
+}
+
+function scrollToCard(devId) {
+  const card = document.querySelector(`.user-card[data-id="${devId}"]`);
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function selectDev(dev) {
+  state.activeDevId = dev.id;
+  highlightActiveCard();
+
+  const details = getMatchDetails(dev.id);
+  const pct = details?.score ?? dev.match;
+  $('amPct').textContent = `${pct}%`;
+  $('amLabel').textContent = `COMPLEMENT MATCH WITH ${dev.name.toUpperCase()}`;
+  $('amQuote').textContent = details ? `"${dev.role} · Level ${dev.level}"` : dev.quote;
+
+  gsap.from('#amPct', { scale: 0.5, opacity: 0, duration: .4, ease: 'back.out(2)' });
+  drawOverlap(dev);
+  drawGapAnalysis(dev);
+
+  document.querySelectorAll('.ml-item').forEach(i => i.classList.remove('active-item'));
+  const mlItem = document.querySelector(`.ml-item[data-id="${dev.id}"]`);
+  if (mlItem) mlItem.classList.add('active-item');
+
+  const color = pct >= 85 ? '#2A9B7A' : pct >= 70 ? '#F5C842' : '#E63B3B';
+  const text = pct >= 85 ? 'PERFECT!' : pct >= 70 ? 'GREAT MATCH!' : 'POSSIBLE!';
+  flashSFX(text, color);
+}
+
 function renderCards() {
-  const grid = document.getElementById('cardsGrid');
+  const grid = $('cardsGrid');
   grid.innerHTML = '';
-  if (filteredDevs.length === 0) {
-    document.getElementById('noResults').style.display = 'block';
-    document.getElementById('resultCount').textContent = '0';
+
+  if (state.filteredDevs.length === 0) {
+    $('noResults').style.display = 'block';
+    $('resultCount').textContent = '0';
     return;
   }
-  document.getElementById('noResults').style.display = 'none';
-  document.getElementById('resultCount').textContent = filteredDevs.length;
-  filteredDevs.forEach(dev => {
+
+  $('noResults').style.display = 'none';
+  $('resultCount').textContent = state.filteredDevs.length;
+
+  state.filteredDevs.forEach(dev => {
     const card = document.createElement('div');
     card.className = 'user-card';
     card.dataset.id = dev.id;
+
     const badgeClass = dev.match >= 85 ? 'high' : dev.match >= 70 ? 'med' : 'low';
-    const pills = dev.skills.slice(0, 3).map(s =>
-      `<div class="uc-pill"><span class="uc-pdot" style="background:${s.color}"></span>${s.id}</div>`
-    ).join('');
-    const gapPills = (dev.gaps || []).slice(0, 2).map(g =>
-      `<div class="gap-pill"><span class="up">↑</span>${g}</div>`
-    ).join('');
-    const theyNeedPills = (dev.theyNeed || []).slice(0, 2).map(g =>
-      `<div class="gap-pill">${g} ↑ you</div>`
-    ).join('');
+    const pills = dev.skills.slice(0, 3).map(s => `<div class="uc-pill"><span class="uc-pdot" style="background:${s.color}"></span>${escapeHtml(s.id)}</div>`).join('');
+    const gapPills = (dev.gaps || []).slice(0, 2).map(g => `<div class="gap-pill"><span class="up">↑</span>${escapeHtml(g)}</div>`).join('');
+    const theyNeedPills = (dev.theyNeed || []).slice(0, 2).map(g => `<div class="gap-pill">${escapeHtml(g)} ↑ you</div>`).join('');
+
     card.innerHTML = `
       <div class="match-badge ${badgeClass}">${dev.match}% MATCH</div>
       <div class="uc-head">
-        <div class="uc-av" style="background:${dev.avBg}">${dev.initials}</div>
+        <div class="uc-av" style="background:${dev.avBg}">${escapeHtml(dev.initials)}</div>
         <div>
-          <div class="uc-name">${dev.name.toUpperCase()}</div>
-          <div class="uc-role">${dev.role}</div>
+          <div class="uc-name">${escapeHtml(dev.name).toUpperCase()}</div>
+          <div class="uc-role">${escapeHtml(dev.role)}</div>
         </div>
       </div>
       <svg class="mini-tree-svg" id="mtree-${dev.id}"></svg>
@@ -723,233 +958,217 @@ function renderCards() {
         <button class="uc-btn">VIEW →</button>
       </div>
     `;
+
     card.addEventListener('click', () => selectDev(dev));
     card.addEventListener('mouseenter', () => { document.body.classList.add('hov'); showTooltip(dev); });
     card.addEventListener('mouseleave', () => { document.body.classList.remove('hov'); hideTooltip(); });
+
+    const viewBtn = card.querySelector('.uc-btn');
+    viewBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      window.location.href = `profile.html?id=${dev.id}`;
+    });
+
     grid.appendChild(card);
     setTimeout(() => {
       const svgEl = document.getElementById(`mtree-${dev.id}`);
       if (svgEl) drawMiniTree(svgEl, dev);
     }, 50);
   });
+
   highlightActiveCard();
   gsap.from('.user-card', { opacity: 0, y: 20, duration: .5, stagger: .06, ease: 'power2.out' });
 }
 
-/* ══ SELECT DEV ══ */
-function selectDev(dev) {
-  activeDevId = dev.id;
-  highlightActiveCard();
-  document.getElementById('amPct').textContent = dev.match + '%';
-  document.getElementById('amLabel').textContent = `COMPLEMENT MATCH WITH ${dev.name.toUpperCase()}`;
-  document.getElementById('amQuote').textContent = dev.quote;
-  gsap.from('#amPct', { scale: 0.5, opacity: 0, duration: .4, ease: 'back.out(2)' });
-  drawOverlap(dev);
-  drawGapAnalysis(dev);
-  document.querySelectorAll('.ml-item').forEach(i => i.classList.remove('active-item'));
-  const mlItem = document.querySelector(`.ml-item[data-id="${dev.id}"]`);
-  if (mlItem) mlItem.classList.add('active-item');
-  const color = dev.match >= 85 ? '#2A9B7A' : dev.match >= 70 ? '#F5C842' : '#E63B3B';
-  const text = dev.match >= 85 ? 'PERFECT!' : dev.match >= 70 ? 'GREAT MATCH!' : 'POSSIBLE!';
-  flashSFX(text, color);
-}
+async function fetchDiscoverPage(reset = false) {
+  if (state.loading || !state.hasMore && !reset) return;
+  state.loading = true;
 
-function highlightActiveCard() {
-  document.querySelectorAll('.user-card').forEach(c => { c.style.borderLeft = ''; c.style.background = ''; });
-  const active = document.querySelector(`.user-card[data-id="${activeDevId}"]`);
-  if (active) { active.style.borderLeft = '4px solid #F5C842'; active.style.background = '#FFFDF0'; }
-}
+  try {
+    if (reset) {
+      state.page = 1;
+      state.hasMore = true;
+      state.allDevelopers = [];
+    }
 
-/* ══ OVERLAP SVG ══ */
-function drawOverlap(dev) {
-  const svg = d3.select('#overlapSvg');
-  svg.selectAll('*').remove();
-  const W = document.getElementById('overlapSvg').clientWidth || 320;
-  const H = 180;
-  svg.append('circle').attr('cx', W * 0.38).attr('cy', H / 2).attr('r', 68)
-    .attr('fill', 'rgba(230,59,59,0.08)').attr('stroke', 'rgba(230,59,59,0.3)').attr('stroke-width', 2);
-  svg.append('text').attr('x', W * 0.22).attr('y', H / 2 - 5).attr('text-anchor', 'middle')
-    .attr('fill', 'rgba(230,59,59,0.5)').attr('font-family', 'Bangers,cursive').attr('font-size', '11').text('YOU');
-  svg.append('circle').attr('cx', W * 0.62).attr('cy', H / 2).attr('r', 68)
-    .attr('fill', 'rgba(26,127,194,0.08)').attr('stroke', 'rgba(26,127,194,0.3)').attr('stroke-width', 2);
-  svg.append('text').attr('x', W * 0.78).attr('y', H / 2 - 5).attr('text-anchor', 'middle')
-    .attr('fill', 'rgba(26,127,194,0.5)').attr('font-family', 'Bangers,cursive').attr('font-size', '11')
-    .text(dev.name.split(' ')[0].toUpperCase());
-  const myIds = MY_SKILLS.map(s => s.id);
-  const theirIds = dev.skills.map(s => s.id);
-  const shared = myIds.filter(s => theirIds.includes(s));
-  svg.append('text').attr('x', W * 0.5).attr('y', H / 2 - 8).attr('text-anchor', 'middle')
-    .attr('fill', 'rgba(245,200,66,0.7)').attr('font-family', 'Bangers,cursive').attr('font-size', '10')
-    .text(shared.length > 0 ? shared[0] : 'UNIQUE');
-  if (shared[1]) {
-    svg.append('text').attr('x', W * 0.5).attr('y', H / 2 + 8).attr('text-anchor', 'middle')
-      .attr('fill', 'rgba(245,200,66,0.5)').attr('font-family', 'Bangers,cursive').attr('font-size', '9').text(shared[1]);
-  }
-  MY_SKILLS.filter(s => !theirIds.includes(s.id)).forEach((s, i) => {
-    svg.append('text').attr('x', W * 0.2).attr('y', H / 2 - 20 + i * 18).attr('text-anchor', 'middle')
-      .attr('fill', s.color).attr('font-size', '9').attr('font-family', 'Oswald,sans-serif').attr('font-weight', '700').text(s.id);
-  });
-  dev.skills.filter(s => !myIds.includes(s.id)).forEach((s, i) => {
-    svg.append('text').attr('x', W * 0.8).attr('y', H / 2 - 20 + i * 18).attr('text-anchor', 'middle')
-      .attr('fill', s.color).attr('font-size', '9').attr('font-family', 'Oswald,sans-serif').attr('font-weight', '700')
-      .text(s.id.length > 7 ? s.id.slice(0, 6) + '…' : s.id);
-  });
-  gsap.from('#overlapSvg circle', { scale: 0, transformOrigin: 'center', duration: .5, stagger: .1, ease: 'back.out(1.5)' });
-}
+    const params = {
+      sort: state.activeSortType,
+      page: state.page,
+      limit: state.limit,
+    };
 
-/* ══ GAP ANALYSIS ══ */
-function drawGapAnalysis(dev) {
-  const rows = document.getElementById('gaRows');
-  rows.innerHTML = '';
-  const myIds = MY_SKILLS.map(s => s.id);
-  const theirIds = dev.skills.map(s => s.id);
-  dev.skills.forEach(s => {
-    if (!myIds.includes(s.id)) rows.appendChild(makeGaRow(s.id, s.level / 5, s.color, 'they', 'FILLS YOUR GAP'));
-  });
-  MY_SKILLS.forEach(s => {
-    if (!theirIds.includes(s.id)) rows.appendChild(makeGaRow(s.id, s.level / 5, s.color, 'you', 'YOU FILL THEIRS'));
-  });
-  MY_SKILLS.filter(s => theirIds.includes(s.id)).forEach(s => {
-    rows.appendChild(makeGaRow(s.id, s.level / 5, s.color, 'both', 'SHARED'));
-  });
-  setTimeout(() => {
-    rows.querySelectorAll('.ga-bar-fill').forEach(b => {
-      const w = b.dataset.w; b.style.width = '0';
-      setTimeout(() => { b.style.width = w; }, 50);
+    const search = state.searchQuery.trim();
+    if (state.activeSkillFilter.length === 1) params.skill = state.activeSkillFilter[0];
+    else if (search && state.activeSkillFilter.length === 0) params.skill = search;
+
+    const rows = await API.discover(params);
+    const incoming = (Array.isArray(rows) ? rows : []).map(normalizeDevFromApi);
+
+    const seen = new Set(state.allDevelopers.map(d => d.id));
+    incoming.forEach(dev => {
+      if (!seen.has(dev.id)) state.allDevelopers.push(dev);
     });
-  }, 50);
+
+    state.hasMore = incoming.length === state.limit;
+    state.page += 1;
+
+    applyFiltersAndRender();
+
+    if (!state.activeDevId && state.filteredDevs.length > 0) {
+      selectDev(state.filteredDevs[0]);
+    }
+  } catch (err) {
+    console.warn('API unavailable, using fallback data:', err.message);
+    state.allDevelopers = FALLBACK_DEVS;
+    state.hasMore = false;
+    applyFiltersAndRender();
+    if (!state.activeDevId && state.filteredDevs.length > 0) selectDev(state.filteredDevs[0]);
+  } finally {
+    state.loading = false;
+  }
 }
 
-function makeGaRow(name, pct, color, type, label) {
-  const div = document.createElement('div');
-  div.className = 'ga-row';
-  div.innerHTML = `
-    <span class="ga-skill">${name}</span>
-    <div class="ga-bar-track"><div class="ga-bar-fill" data-w="${Math.round(pct * 100)}%" style="background:${color};width:0"></div></div>
-    <span class="ga-type ${type}">${label}</span>
-  `;
-  return div;
+async function loadMyProfileData() {
+  if (!API.isLoggedIn()) {
+    state.me = null;
+    state.mySkills = [];
+    state.matches = [];
+    refreshMatchMap();
+    setNavLabel();
+    return;
+  }
+
+  try {
+    state.me = await API.me();
+    localStorage.setItem('sf_user_id', state.me.id);
+    setNavLabel();
+
+    const tree = await API.getSkillTree(state.me.id);
+    state.mySkills = (tree.nodes || []).map(n => ({
+      id: n.name,
+      level: n.level,
+      color: n.color || '#1A7FC2'
+    }));
+
+    const matchRows = await API.getMatches(state.me.id, 8).catch(() => []);
+    state.matches = (Array.isArray(matchRows) ? matchRows : []).map(normalizeMatch);
+    refreshMatchMap();
+  } catch (err) {
+    console.warn('Could not load logged-in user context:', err.message);
+    state.me = null;
+    state.mySkills = [];
+    state.matches = [];
+    refreshMatchMap();
+    setNavLabel();
+  }
 }
 
-/* ══ MATCH LIST ══ */
-function renderMatchList() {
-  const list = document.getElementById('matchList');
-  list.innerHTML = '';
-  [...ALL_DEVELOPERS].sort((a, b) => b.match - a.match).slice(0, 5).forEach(dev => {
-    const div = document.createElement('div');
-    div.className = 'ml-item' + (dev.id === activeDevId ? ' active-item' : '');
-    div.dataset.id = dev.id;
-    const pctColor = dev.match >= 85 ? '#2A9B7A' : dev.match >= 70 ? '#F5C842' : 'rgba(245,240,232,.4)';
-    div.innerHTML = `
-      <div class="ml-av" style="background:${dev.avBg}">${dev.initials}</div>
-      <div style="flex:1"><div class="ml-name">${dev.name}</div><div class="ml-role">${dev.role}</div></div>
-      <div class="ml-pct" style="color:${pctColor}">${dev.match}%</div>
-    `;
-    div.addEventListener('click', () => { selectDev(dev); scrollToCard(dev.id); });
-    div.addEventListener('mouseenter', () => document.body.classList.add('hov'));
-    div.addEventListener('mouseleave', () => document.body.classList.remove('hov'));
-    list.appendChild(div);
+function resetAndReload() {
+  state.allDevelopers = [];
+  state.filteredDevs = [];
+  state.page = 1;
+  state.hasMore = true;
+  state.activeDevId = null;
+  $('noResults').style.display = 'none';
+  fetchDiscoverPage(true);
+}
+
+function setupFilters() {
+  $('searchInput').addEventListener('input', () => {
+    state.searchQuery = $('searchInput').value;
+    fetchDiscoverPage(true);
+  });
+  $('searchGo').addEventListener('click', () => {
+    state.searchQuery = $('searchInput').value;
+    fetchDiscoverPage(true);
+  });
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.activeFilterType = btn.dataset.filter;
+      applyFiltersAndRender();
+    });
+  });
+
+  document.querySelectorAll('.stag').forEach(tag => {
+    tag.addEventListener('click', () => {
+      tag.classList.toggle('active');
+      const skill = tag.dataset.skill;
+      if (state.activeSkillFilter.includes(skill)) state.activeSkillFilter = state.activeSkillFilter.filter(s => s !== skill);
+      else state.activeSkillFilter.push(skill);
+      fetchDiscoverPage(true);
+    });
+  });
+
+  document.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.activeSortType = btn.dataset.sort;
+      fetchDiscoverPage(true);
+    });
   });
 }
 
-function scrollToCard(devId) {
-  const card = document.querySelector(`.user-card[data-id="${devId}"]`);
-  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
-/* ══ TOOLTIP ══ */
-function showTooltip(dev) {
-  const tt = document.getElementById('tooltip');
-  document.getElementById('tt-name').textContent = dev.name;
-  document.getElementById('tt-text').textContent = dev.quote;
-  tt.style.display = 'block';
-  document.addEventListener('mousemove', moveTooltip);
-}
-function hideTooltip() {
-  document.getElementById('tooltip').style.display = 'none';
-  document.removeEventListener('mousemove', moveTooltip);
-}
-function moveTooltip(e) {
-  const tt = document.getElementById('tooltip');
-  tt.style.left = (e.clientX + 20) + 'px';
-  tt.style.top = (e.clientY - 10) + 'px';
-}
-
-/* ══ FLASH SFX ══ */
-function flashSFX(text, color = '#F5C842') {
-  const el = document.createElement('div');
-  el.style.cssText = `position:fixed;top:45%;left:50%;transform:translate(-50%,-50%) rotate(-6deg);
-    font-family:'Bangers',cursive;font-size:4.5rem;letter-spacing:4px;
-    color:${color};-webkit-text-stroke:3px #1A1A1A;text-shadow:5px 5px 0 rgba(26,26,26,.3);
-    pointer-events:none;z-index:9000;`;
-  el.textContent = text;
-  document.body.appendChild(el);
-  gsap.fromTo(el, { scale: .4, opacity: 0 }, { scale: 1.1, opacity: 1, duration: .25, ease: 'back.out(2)' });
-  gsap.to(el, { scale: 1.3, opacity: 0, duration: .4, delay: .4, ease: 'power2.in', onComplete: () => el.remove() });
-}
-
-/* ══ SEARCH & FILTER ══ */
-document.getElementById('searchInput').addEventListener('input', applyFilters);
-document.getElementById('searchGo').addEventListener('click', applyFilters);
-document.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeFilterType = btn.dataset.filter;
-    applyFilters();
+function setupInfiniteScroll() {
+  window.addEventListener('scroll', () => {
+    const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 400;
+    if (nearBottom && state.hasMore && !state.loading) {
+      fetchDiscoverPage(false);
+    }
   });
-});
-document.querySelectorAll('.stag').forEach(tag => {
-  tag.addEventListener('click', () => {
-    tag.classList.toggle('active');
-    const skill = tag.dataset.skill;
-    if (activeSkillFilter.includes(skill)) activeSkillFilter = activeSkillFilter.filter(s => s !== skill);
-    else activeSkillFilter.push(skill);
-    applyFilters();
-  });
-});
-document.querySelectorAll('.sort-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeSortType = btn.dataset.sort;
-    applyFilters();
-  });
-});
-
-function applyFilters() {
-  const q = document.getElementById('searchInput').value.toLowerCase();
-  filteredDevs = ALL_DEVELOPERS.filter(dev => {
-    const matchQ = !q || dev.name.toLowerCase().includes(q) ||
-      dev.role.toLowerCase().includes(q) ||
-      dev.skills.some(s => s.id.toLowerCase().includes(q));
-    const matchSkill = activeSkillFilter.length === 0 ||
-      activeSkillFilter.every(f => dev.skills.some(s => s.id.toLowerCase().includes(f.toLowerCase())));
-    return matchQ && matchSkill;
-  });
-  filteredDevs.sort((a, b) => {
-    if (activeSortType === 'match') return b.match - a.match;
-    if (activeSortType === 'level') return b.level - a.level;
-    if (activeSortType === 'vouches') return b.vouches - a.vouches;
-    return 0;
-  });
-  renderCards();
 }
 
-/* ══ HOVER ══ */
-document.querySelectorAll('a,button').forEach(el => {
-  el.addEventListener('mouseenter', () => document.body.classList.add('hov'));
-  el.addEventListener('mouseleave', () => document.body.classList.remove('hov'));
-});
+function setupHoverStates() {
+  document.querySelectorAll('a,button').forEach(el => {
+    el.addEventListener('mouseenter', () => document.body.classList.add('hov'));
+    el.addEventListener('mouseleave', () => document.body.classList.remove('hov'));
+  });
+}
 
-/* ══ ENTRANCE ANIMATIONS ══ */
-gsap.from('#discoverHero', { y: -20, opacity: 0, duration: .8, ease: 'power3.out', delay: .1 });
-gsap.from('.search-bar', { y: 10, opacity: 0, duration: .6, ease: 'power2.out', delay: .3 });
-gsap.from('.skill-tags', { y: 10, opacity: 0, duration: .6, ease: 'power2.out', delay: .4 });
-gsap.from('.discover-grid', { y: 20, opacity: 0, duration: .7, ease: 'power2.out', delay: .5 });
+function setupCursor() {
+  const cur = $('cur');
+  document.addEventListener('mousemove', e => {
+    cur.style.left = e.clientX + 'px';
+    cur.style.top = e.clientY + 'px';
+  });
+}
 
-/* ══ INIT ══ */
-loadDiscover();
+async function bootstrap() {
+  setupCursor();
+  setupHoverStates();
+  setupFilters();
+  setupInfiniteScroll();
+  setAuthButtonBehavior();
+  setNavLabel();
+  countUp('ds1', 12847);
+  countUp('ds2', 84200);
+  countUp('ds3', 347);
+
+  document.addEventListener('sf:login', async e => {
+    state.me = e.detail;
+    localStorage.setItem('sf_user_id', e.detail.id);
+    setNavLabel();
+    await loadMyProfileData();
+    await fetchDiscoverPage(true);
+  });
+
+  if (API.isLoggedIn()) {
+    await loadMyProfileData();
+  }
+
+  await fetchDiscoverPage(true);
+
+  gsap.from('#discoverHero', { y: -20, opacity: 0, duration: .8, ease: 'power3.out', delay: .1 });
+  gsap.from('.search-bar', { y: 10, opacity: 0, duration: .6, ease: 'power2.out', delay: .3 });
+  gsap.from('.skill-tags', { y: 10, opacity: 0, duration: .6, ease: 'power2.out', delay: .4 });
+  gsap.from('.discover-grid', { y: 20, opacity: 0, duration: .7, ease: 'power2.out', delay: .5 });
+}
+
+bootstrap();
 </script>
+
 </body>
 </html>

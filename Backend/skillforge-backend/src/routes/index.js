@@ -1,4 +1,3 @@
-// src/routes/index.js — master router
 const express = require('express');
 const router  = express.Router();
 
@@ -27,10 +26,10 @@ router.delete('/skills/edges/:edgeId',   auth, skillCtrl.deleteEdge);
 
 // ── VOUCHES ───────────────────────────────────────────
 router.get   ('/users/:userId/vouches',  vouchCtrl.getVouchesForUser);
-router.post  ('/vouches',               auth, vouchCtrl.createVouch);
+router.post  ('/vouches',                auth, vouchCtrl.createVouch);
 router.delete('/vouches/:vouchId',       auth, vouchCtrl.deleteVouch);
 
 // ── MATCHING ──────────────────────────────────────────
-router.get('/match/:userId', matchCtrl.getMatches);
+router.get('/match/:userId', auth, matchCtrl.getMatches);
 
 module.exports = router;

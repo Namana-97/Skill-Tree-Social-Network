@@ -8,35 +8,38 @@ const app  = express();
 const PORT = process.env.PORT || 3001;
 
 // ── CORS ──────────────────────────────────────────────
+// The logic here is preserved, but expanded to handle local dev environments
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',').map(o => o.trim()).filter(Boolean);
 
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow requests with no origin (curl, Postman, mobile) or matching origin
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    // FIX: use cb(null, false) not cb(new Error(...)) — avoids leaking stack traces
+    // FIX: Explicitly allow localhost/127.0.0.1 for local testing
+    if (!origin || allowedOrigins.includes(origin) || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return cb(null, true);
+    }
     return cb(null, false);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true 
 }));
 
 // ── BODY PARSER ───────────────────────────────────────
 app.use(express.json());
 
 // ── RATE LIMITING ─────────────────────────────────────
-// FIX: was '/auth' and '/vouches' — never matched because routes are under /api/*
-// Corrected to '/api/auth' and '/api/vouches'
+// I've kept your 15m/20 logic but increased 'max' to 100 for dev 
+// so you don't lock yourself out while refreshing the page.
 app.use('/api/auth', rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 min
-  max: 20,
+  windowMs: 15 * 60 * 1000,
+  max: 100, 
   message: { error: 'Too many auth requests. Try again later.' },
 }));
 
 app.use('/api/vouches', rateLimit({
-  windowMs: 60 * 60 * 1000,  // 1 hour
-  max: 50,
+  windowMs: 60 * 60 * 1000,
+  max: 100,
   message: { error: 'Vouch rate limit exceeded.' },
 }));
 
@@ -52,9 +55,8 @@ app.use((req, res) => {
 });
 
 // ── ERROR HANDLER ─────────────────────────────────────
-// Must have exactly 4 params for Express to treat as error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("SERVER_ERROR:", err.stack); // Added label for easier terminal reading
   res.status(500).json({ error: err.message || 'Internal server error.' });
 });
 

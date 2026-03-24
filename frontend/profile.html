@@ -889,18 +889,24 @@ let links = [
 
 // ── Nav auth ────────────────────────────────────────
 document.getElementById('navAuthBtn').addEventListener('click', () => {
+  if (API.isLoggedIn()) {
+    API.logout();
+    return;
+  }
   if (typeof AuthModal !== 'undefined') AuthModal.show();
 });
 
 // ── Load profile from API ────────────────────────────
 async function loadProfile() {
-  try {
-    const userId = localStorage.getItem('sf_user_id') || 1;
-    const res = await fetch(`http://localhost:3001/api/users/${userId}/profile`, { signal: AbortSignal.timeout(3000) });
-    if (!res.ok) throw new Error('API error');
-    const data = await res.json();
+  const params = new URLSearchParams(window.location.search);
+  const viewedUserId = params.get('id') || localStorage.getItem('sf_user_id') || 1;
+  const currentUserId = localStorage.getItem('sf_user_id');
 
-    // Update header
+  try {
+    const data = await API.getProfile(viewedUserId);
+
+    // Update title and header
+    document.title = `SkillForge - ${data.user.display_name}'s Profile`;
     document.querySelector('.profile-name').textContent = data.user.display_name.toUpperCase();
     document.querySelector('.profile-title').textContent = `◆ ${data.user.role_title || 'Developer'} · Open to work`;
     if (data.user.bio) document.querySelector('.profile-bio').textContent = `"${data.user.bio}"`;
@@ -909,36 +915,39 @@ async function loadProfile() {
     document.getElementById('ss').textContent = data.skills.length;
 
     // Load tree
-    const treeRes = await fetch(`http://localhost:3001/api/users/${userId}/skills`, { signal: AbortSignal.timeout(3000) });
-    if (treeRes.ok) {
-      const tree = await treeRes.json();
-      if (tree.nodes && tree.nodes.length > 0) {
-        nodes = tree.nodes.map(n => ({ id: n.name, level: n.level, color: n.color, vouches: n.vouch_count, _dbId: n.id }));
-        links = tree.edges.map(e => ({
-          source: nodes.find(n => n._dbId === e.source)?.id || e.source,
-          target: nodes.find(n => n._dbId === e.target)?.id || e.target,
-        }));
-      }
+    const tree = await API.getSkillTree(viewedUserId);
+    if (tree.nodes && tree.nodes.length > 0) {
+      nodes = tree.nodes.map(n => ({ id: n.name, level: n.level, color: n.color, vouches: n.vouch_count, _dbId: n.id }));
+      links = tree.edges.map(e => ({
+        source: nodes.find(n => n._dbId === e.source)?.id || e.source,
+        target: nodes.find(n => n._dbId === e.target)?.id || e.target,
+      }));
     }
 
     // Load vouches sidebar
-    const vouchRes = await fetch(`http://localhost:3001/api/users/${userId}/vouches`, { signal: AbortSignal.timeout(3000) });
-    if (vouchRes.ok) {
-      const vouches = await vouchRes.json();
-      const vouchList = document.querySelector('.vouch-list');
-      if (vouchList && vouches.length > 0) {
-        vouchList.innerHTML = vouches.slice(0, 3).map(v => `
-          <div class="vouch-item">
-            <div class="vouch-av" style="background:${v.avatar_color || '#E63B3B'}">${v.avatar_initials || '??'}</div>
-            <div class="vouch-text">
-              <div class="vouch-name">${v.voucher_name}</div>
-              <div class="vouch-skill"><span class="vouch-check">✓</span> Vouched ${v.skill_name} · Lv.${v.skill_level}</div>
-              <div class="vouch-time">${timeAgo(v.created_at)}</div>
-            </div>
+    const vouches = await API.getVouches(viewedUserId);
+    const vouchList = document.querySelector('.vouch-list');
+    if (vouchList && vouches.length > 0) {
+      vouchList.innerHTML = vouches.slice(0, 3).map(v => `
+        <div class="vouch-item">
+          <div class="vouch-av" style="background:${v.avatar_color || '#E63B3B'}">${v.avatar_initials || '??'}</div>
+          <div class="vouch-text">
+            <div class="vouch-name">${v.voucher_name}</div>
+            <div class="vouch-skill"><span class="vouch-check">✓</span> Vouched ${v.skill_name} · Lv.${v.skill_level}</div>
+            <div class="vouch-time">${timeAgo(v.created_at)}</div>
           </div>
-        `).join('');
-      }
+        </div>
+      `).join('');
     }
+
+    // Only let the signed-in owner add skills on their own profile
+    const canEdit = currentUserId && String(currentUserId) === String(viewedUserId);
+    document.getElementById('btnAdd').style.display = canEdit ? '' : 'none';
+    document.getElementById('btnConnect').style.display = canEdit ? '' : 'none';
+    document.getElementById('btnReset').style.display = canEdit ? '' : 'none';
+    document.querySelector('.bubble-aside').textContent = canEdit
+      ? '12 vouches this month... my tree is growing! 🌱'
+      : `${data.user.display_name}'s tree is locked for editing.`;
 
     console.log('✅ Profile loaded from API');
   } catch (err) {
@@ -946,7 +955,6 @@ async function loadProfile() {
   }
   render();
 }
-
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr);
   const days = Math.floor(diff / 86400000);
@@ -1244,11 +1252,7 @@ document.getElementById('addSkillBtn').addEventListener('click', () => {
   // Save to API if backend is running
   const userId = localStorage.getItem('sf_user_id');
   if (userId) {
-    fetch('http://localhost:3001/api/skills', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('sf_token') || ''}` },
-      body: JSON.stringify({ name, level, color: selectedColor })
-    }).catch(() => {}); // silent fail if backend offline
+    API.addSkill({ name, level, color: selectedColor }).catch(() => {});
   }
   document.getElementById('modal').classList.remove('open');
   document.getElementById('skillName').value = '';
