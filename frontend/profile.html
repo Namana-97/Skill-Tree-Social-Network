@@ -355,10 +355,38 @@ nav {
 }
 .skill-item:hover { transform: translate(-2px,-2px); border-color: var(--ink); box-shadow: 3px 3px 0 var(--ink); }
 .skill-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(26,26,26,.3); }
-.skill-name { font-family: 'Oswald', sans-serif; font-size: .82rem; font-weight: 700; letter-spacing: .5px; flex: 1; }
+.skill-main { flex: 1; min-width: 0; }
+.skill-name { font-family: 'Oswald', sans-serif; font-size: .82rem; font-weight: 700; letter-spacing: .5px; display: block; }
+.skill-meta { font-size: .66rem; color: #666; font-style: italic; margin-top: .15rem; }
+.skill-proof { margin-top: .25rem; }
+.skill-proof a {
+  font-family: 'Oswald', sans-serif; font-size: .62rem; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--blue);
+  text-decoration: none;
+}
+.skill-proof a:hover { color: var(--red); }
+.skill-right { display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; }
 .skill-level-dots { display: flex; gap: 3px; }
 .sdot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid rgba(26,26,26,.2); }
 .sdot.filled { border-color: transparent; }
+.skill-actions { display: flex; gap: .35rem; flex-wrap: wrap; justify-content: flex-end; }
+.skill-action-btn {
+  font-family: 'Oswald', sans-serif; font-size: .6rem; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  border: 1.5px solid rgba(26,26,26,.12);
+  background: transparent; color: rgba(26,26,26,.55);
+  padding: .2rem .45rem; cursor: none;
+}
+.skill-action-btn:hover { border-color: var(--ink); color: var(--ink); }
+.skill-action-btn.primary { border-color: var(--green); color: var(--green); }
+.skill-action-btn.danger { border-color: var(--red); color: var(--red); }
+.empty-state {
+  font-family: 'Permanent Marker', cursive;
+  font-size: .74rem;
+  color: #999;
+  text-align: center;
+  padding: .8rem 0;
+}
 
 /* Vouches */
 .vouch-list { display: flex; flex-direction: column; gap: .7rem; }
@@ -577,7 +605,7 @@ nav {
 <!-- ADD NODE MODAL -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
-    <div class="modal-title">+ ADD SKILL</div>
+    <div class="modal-title" id="skillModalTitle">+ ADD SKILL</div>
     <label>Skill name</label>
     <input type="text" id="skillName" placeholder="e.g. TypeScript"/>
     <label>Level (1–5)</label>
@@ -598,8 +626,10 @@ nav {
       <div class="color-opt" data-color="#E8849A" style="background:#E8849A"></div>
       <div class="color-opt" data-color="#E87C2A" style="background:#E87C2A"></div>
     </div>
+    <label>Proof URL</label>
+    <input type="url" id="skillProofUrl" placeholder="https://github.com/your-project"/>
     <div class="modal-btns">
-      <button class="mbtn primary" id="addSkillBtn">ADD SKILL ⚡</button>
+      <button class="mbtn primary" id="addSkillBtn">SAVE SKILL ⚡</button>
       <button class="mbtn cancel" id="cancelBtn">CANCEL</button>
     </div>
   </div>
@@ -619,8 +649,8 @@ nav {
 <nav>
   <a href="LandingPage.html" class="logo">⬡ SkillForge</a>
   <div class="nav-r">
-    <a href="#">Discover</a>
-    <a href="#">Matches</a>
+    <a href="Discover.html">Discover</a>
+    <a href="#profileMatchList">Matches</a>
     <button class="nav-btn" id="navAuthBtn">LOGIN</button>
   </div>
 </nav>
@@ -633,12 +663,12 @@ nav {
       <div class="avatar-wrap">
         <div class="avatar">AK</div>
         <div class="online-dot"></div>
-        <div class="avatar-badge">LVL 34</div>
+        <div class="avatar-badge" id="avatarBadge">LVL 1</div>
       </div>
-      <div class="ph-rank">⚡ RANK S</div>
+      <div class="ph-rank" id="profileRank">⚡ RANK C</div>
       <div style="text-align:center;">
-        <div style="font-family:'Bangers',cursive;font-size:1.8rem;letter-spacing:2px;color:var(--yellow);line-height:1;">247</div>
-        <div style="font-family:'Oswald',sans-serif;font-size:.58rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(245,240,232,.25);">XP THIS WEEK</div>
+        <div id="xpValue" style="font-family:'Bangers',cursive;font-size:1.8rem;letter-spacing:2px;color:var(--yellow);line-height:1;">0</div>
+        <div id="xpLabel" style="font-family:'Oswald',sans-serif;font-size:.58rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(245,240,232,.25);">TOTAL XP</div>
       </div>
     </div>
 
@@ -651,23 +681,23 @@ nav {
       <div class="stat-bars">
         <div class="bar-row">
           <span class="bar-label">FRONTEND</span>
-          <div class="bar-track"><div class="bar-fill" style="width:92%;background:#E63B3B;"></div></div>
-          <span class="bar-val" style="color:#E63B3B;">92</span>
+          <div class="bar-track"><div class="bar-fill" id="frontendFill" style="width:0%;background:#E63B3B;"></div></div>
+          <span class="bar-val" id="frontendVal" style="color:#E63B3B;">0</span>
         </div>
         <div class="bar-row">
           <span class="bar-label">BACKEND</span>
-          <div class="bar-track"><div class="bar-fill" style="width:78%;background:#1A7FC2;"></div></div>
-          <span class="bar-val" style="color:#1A7FC2;">78</span>
+          <div class="bar-track"><div class="bar-fill" id="backendFill" style="width:0%;background:#1A7FC2;"></div></div>
+          <span class="bar-val" id="backendVal" style="color:#1A7FC2;">0</span>
         </div>
         <div class="bar-row">
           <span class="bar-label">DEVOPS</span>
-          <div class="bar-track"><div class="bar-fill" style="width:55%;background:#2A9B7A;"></div></div>
-          <span class="bar-val" style="color:#2A9B7A;">55</span>
+          <div class="bar-track"><div class="bar-fill" id="devopsFill" style="width:0%;background:#2A9B7A;"></div></div>
+          <span class="bar-val" id="devopsVal" style="color:#2A9B7A;">0</span>
         </div>
         <div class="bar-row">
           <span class="bar-label">ML / AI</span>
-          <div class="bar-track"><div class="bar-fill" style="width:40%;background:#5C3FB0;"></div></div>
-          <span class="bar-val" style="color:#5C3FB0;">40</span>
+          <div class="bar-track"><div class="bar-fill" id="mlFill" style="width:0%;background:#5C3FB0;"></div></div>
+          <span class="bar-val" id="mlVal" style="color:#5C3FB0;">0</span>
         </div>
       </div>
     </div>
@@ -727,70 +757,13 @@ nav {
       <!-- Vouches -->
       <div class="side-panel">
         <div class="side-panel-title">VOUCHES RECEIVED</div>
-        <div class="vouch-list">
-          <div class="vouch-item">
-            <div class="vouch-av" style="background:#E63B3B;">SR</div>
-            <div class="vouch-text">
-              <div class="vouch-name">Sofia R.</div>
-              <div class="vouch-skill"><span class="vouch-check">✓</span> Vouched React · Lv.4</div>
-              <div class="vouch-time">2 days ago</div>
-            </div>
-          </div>
-          <div class="vouch-item">
-            <div class="vouch-av" style="background:#5C3FB0;">MK</div>
-            <div class="vouch-text">
-              <div class="vouch-name">Marcus K.</div>
-              <div class="vouch-skill"><span class="vouch-check">✓</span> Vouched Node.js · Lv.4</div>
-              <div class="vouch-time">5 days ago</div>
-            </div>
-          </div>
-          <div class="vouch-item">
-            <div class="vouch-av" style="background:#2A9B7A;">JP</div>
-            <div class="vouch-text">
-              <div class="vouch-name">Jamie P.</div>
-              <div class="vouch-skill"><span class="vouch-check">✓</span> Vouched JavaScript · Lv.5</div>
-              <div class="vouch-time">1 week ago</div>
-            </div>
-          </div>
-        </div>
+        <div class="vouch-list" id="vouchList"></div>
       </div>
 
       <!-- Matches -->
       <div class="side-panel">
         <div class="side-panel-title">COMPLEMENT MATCHES</div>
-        <div class="match-card">
-          <div class="match-head">
-            <div class="match-user">
-              <div class="match-av" style="background:linear-gradient(135deg,#5C3FB0,#E8849A);">LP</div>
-              <div>
-                <div class="match-name">Lisa Park</div>
-                <div class="match-role">ML Engineer</div>
-              </div>
-            </div>
-            <div class="match-pct">94%</div>
-          </div>
-          <div class="match-skills">
-            <span class="match-tag">Python ↑</span>
-            <span class="match-tag">TensorFlow ↑</span>
-            <span class="match-tag">MLOps ↑</span>
-          </div>
-        </div>
-        <div class="match-card">
-          <div class="match-head">
-            <div class="match-user">
-              <div class="match-av" style="background:linear-gradient(135deg,#1A7FC2,#2A9B7A);">JT</div>
-              <div>
-                <div class="match-name">James T.</div>
-                <div class="match-role">DevOps Engineer</div>
-              </div>
-            </div>
-            <div class="match-pct">87%</div>
-          </div>
-          <div class="match-skills">
-            <span class="match-tag">K8s ↑</span>
-            <span class="match-tag">Terraform ↑</span>
-          </div>
-        </div>
+        <div id="profileMatchList"></div>
       </div>
 
     </div>
@@ -799,38 +772,7 @@ nav {
   <!-- ══ ACTIVITY STRIP ══ -->
   <div class="activity-strip">
     <div class="activity-label">RECENT ACTIVITY</div>
-    <div class="activity-items">
-      <div class="activity-item">
-        <div class="ai-type vouch">✓ VOUCHED</div>
-        <div class="ai-text">Sofia R. vouched your <strong>React</strong> skill to Lv.4</div>
-        <div class="ai-time">2 days ago</div>
-      </div>
-      <div class="activity-item">
-        <div class="ai-type level">↑ LEVELED UP</div>
-        <div class="ai-text">You leveled <strong>JavaScript</strong> up to Lv.5</div>
-        <div class="ai-time">4 days ago</div>
-      </div>
-      <div class="activity-item">
-        <div class="ai-type match">⚡ MATCHED</div>
-        <div class="ai-text">New complement match: <strong>Lisa Park</strong> (94%)</div>
-        <div class="ai-time">1 week ago</div>
-      </div>
-      <div class="activity-item">
-        <div class="ai-type vouch">✓ VOUCHED</div>
-        <div class="ai-text">Marcus K. vouched your <strong>Node.js</strong> skill</div>
-        <div class="ai-time">1 week ago</div>
-      </div>
-      <div class="activity-item">
-        <div class="ai-type level">↑ ADDED SKILL</div>
-        <div class="ai-text">Added <strong>Docker</strong> to your skill tree at Lv.3</div>
-        <div class="ai-time">2 weeks ago</div>
-      </div>
-      <div class="activity-item">
-        <div class="ai-type match">⚡ MATCHED</div>
-        <div class="ai-text">New complement match: <strong>James T.</strong> (87%)</div>
-        <div class="ai-time">2 weeks ago</div>
-      </div>
-    </div>
+    <div class="activity-items" id="activityItems"></div>
   </div>
 
 </div><!-- /manga-page -->
@@ -839,470 +781,814 @@ nav {
 <script src="api.js"></script>
 <script src="auth-modal.js"></script>
 <script>
-/* ══════════════════════════════════════
-   CURSOR
-══════════════════════════════════════ */
-const cur = document.getElementById('cur');
-document.addEventListener('mousemove', e => {
-  cur.style.left = e.clientX + 'px';
-  cur.style.top  = e.clientY + 'px';
-});
-document.querySelectorAll('a,button,.skill-item,.match-card,.activity-item,.d3-node,.color-opt').forEach(el => {
-  el.addEventListener('mouseenter', () => document.body.classList.add('hov'));
-  el.addEventListener('mouseleave', () => document.body.classList.remove('hov'));
-});
+const $ = id => document.getElementById(id);
+const LEVEL_LABELS = ['', 'Beginner', 'Familiar', 'Proficient', 'Advanced', 'Expert'];
+const CATEGORY_KEYWORDS = {
+  frontend: ['javascript', 'typescript', 'react', 'next', 'vue', 'css', 'html', 'figma', 'graphql', 'tailwind'],
+  backend: ['node', 'sql', 'postgres', 'postgresql', 'redis', 'grpc', 'go', 'rust', 'fastapi', 'api'],
+  devops: ['docker', 'kubernetes', 'terraform', 'aws', 'linux', 'devops', 'mlops'],
+  ml: ['python', 'tensorflow', 'pytorch', 'llm', 'ml', 'ai', 'nlp'],
+};
 
-/* ══════════════════════════════════════
-   COUNT-UP STATS
-══════════════════════════════════════ */
-function countUp(id, target, suffix='') {
-  const el = document.getElementById(id);
-  let v = 0; const step = target / 50;
-  const t = setInterval(() => {
-    v += step; if(v >= target) { v = target; clearInterval(t); }
-    el.textContent = Math.floor(v) + suffix;
-  }, 20);
-}
-setTimeout(() => { countUp('vs',12); countUp('ss',5); countUp('ms',8); }, 400);
+const state = {
+  viewer: null,
+  profile: null,
+  viewedUserId: null,
+  canEdit: false,
+  nodes: [],
+  links: [],
+  vouches: [],
+  matches: [],
+  connectMode: false,
+  connectSource: null,
+  selectedColor: '#E63B3B',
+  editingSkillId: null,
+};
 
-/* ══════════════════════════════════════
-   D3 SKILL TREE
-══════════════════════════════════════ */
-const svgEl = document.getElementById('treesvg');
-const W = svgEl.clientWidth || 700;
-const H = svgEl.clientHeight || 560;
-
-// Tree data — populated from API or fallback
-let nodes = [
-  { id:'JavaScript', level:5, color:'#E63B3B', vouches:12 },
-  { id:'React',      level:4, color:'#5C3FB0', vouches:8  },
-  { id:'Node',       level:4, color:'#1A7FC2', vouches:5  },
-  { id:'SQL',        level:3, color:'#2A9B7A', vouches:3  },
-  { id:'Docker',     level:3, color:'#F5C842', vouches:2  },
-];
-let links = [
-  { source:'JavaScript', target:'React'  },
-  { source:'JavaScript', target:'Node'   },
-  { source:'Node',       target:'SQL'    },
-  { source:'Node',       target:'Docker' },
-];
-
-// ── Nav auth ────────────────────────────────────────
-document.getElementById('navAuthBtn').addEventListener('click', () => {
-  if (API.isLoggedIn()) {
-    API.logout();
-    return;
-  }
-  if (typeof AuthModal !== 'undefined') AuthModal.show();
-});
-
-// ── Load profile from API ────────────────────────────
-async function loadProfile() {
-  const params = new URLSearchParams(window.location.search);
-  const viewedUserId = params.get('id') || localStorage.getItem('sf_user_id') || 1;
-  const currentUserId = localStorage.getItem('sf_user_id');
-
-  try {
-    const data = await API.getProfile(viewedUserId);
-
-    // Update title and header
-    document.title = `SkillForge - ${data.user.display_name}'s Profile`;
-    document.querySelector('.profile-name').textContent = data.user.display_name.toUpperCase();
-    document.querySelector('.profile-title').textContent = `◆ ${data.user.role_title || 'Developer'} · Open to work`;
-    if (data.user.bio) document.querySelector('.profile-bio').textContent = `"${data.user.bio}"`;
-    document.querySelector('.avatar').textContent = data.user.avatar_initials || '??';
-    document.getElementById('vs').textContent = data.total_vouches;
-    document.getElementById('ss').textContent = data.skills.length;
-
-    // Load tree
-    const tree = await API.getSkillTree(viewedUserId);
-    if (tree.nodes && tree.nodes.length > 0) {
-      nodes = tree.nodes.map(n => ({ id: n.name, level: n.level, color: n.color, vouches: n.vouch_count, _dbId: n.id }));
-      links = tree.edges.map(e => ({
-        source: nodes.find(n => n._dbId === e.source)?.id || e.source,
-        target: nodes.find(n => n._dbId === e.target)?.id || e.target,
-      }));
-    }
-
-    // Load vouches sidebar
-    const vouches = await API.getVouches(viewedUserId);
-    const vouchList = document.querySelector('.vouch-list');
-    if (vouchList && vouches.length > 0) {
-      vouchList.innerHTML = vouches.slice(0, 3).map(v => `
-        <div class="vouch-item">
-          <div class="vouch-av" style="background:${v.avatar_color || '#E63B3B'}">${v.avatar_initials || '??'}</div>
-          <div class="vouch-text">
-            <div class="vouch-name">${v.voucher_name}</div>
-            <div class="vouch-skill"><span class="vouch-check">✓</span> Vouched ${v.skill_name} · Lv.${v.skill_level}</div>
-            <div class="vouch-time">${timeAgo(v.created_at)}</div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // Only let the signed-in owner add skills on their own profile
-    const canEdit = currentUserId && String(currentUserId) === String(viewedUserId);
-    document.getElementById('btnAdd').style.display = canEdit ? '' : 'none';
-    document.getElementById('btnConnect').style.display = canEdit ? '' : 'none';
-    document.getElementById('btnReset').style.display = canEdit ? '' : 'none';
-    document.querySelector('.bubble-aside').textContent = canEdit
-      ? '12 vouches this month... my tree is growing! 🌱'
-      : `${data.user.display_name}'s tree is locked for editing.`;
-
-    console.log('✅ Profile loaded from API');
-  } catch (err) {
-    console.warn('API unavailable — using demo data:', err.message);
-  }
-  render();
-}
-function timeAgo(dateStr) {
-  const diff = Date.now() - new Date(dateStr);
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return 'today';
-  if (days === 1) return '1 day ago';
-  if (days < 7) return `${days} days ago`;
-  return `${Math.floor(days / 7)} week${Math.floor(days / 7) > 1 ? 's' : ''} ago`;
-}
-
-// State
-let connectMode = false;
-let connectSource = null;
-let selectedColor = '#E63B3B';
-
-const svg = d3.select('#treesvg');
-
-// Arrow marker
-svg.append('defs').append('marker')
-  .attr('id','arrow').attr('viewBox','0 -4 8 8')
-  .attr('refX',14).attr('refY',0)
-  .attr('markerWidth',5).attr('markerHeight',5)
-  .attr('orient','auto')
-  .append('path').attr('d','M0,-4L8,0L0,4').attr('fill','rgba(245,240,232,.2)');
-
-// Groups
+const cur = $('cur');
+const svgEl = $('treesvg');
+const svg = d3.select(svgEl);
 const gLink = svg.append('g');
 const gNode = svg.append('g');
 
-// Simulation
+svg.append('defs').append('marker')
+  .attr('id', 'arrow')
+  .attr('viewBox', '0 -4 8 8')
+  .attr('refX', 14)
+  .attr('refY', 0)
+  .attr('markerWidth', 5)
+  .attr('markerHeight', 5)
+  .attr('orient', 'auto')
+  .append('path')
+  .attr('d', 'M0,-4L8,0L0,4')
+  .attr('fill', 'rgba(245,240,232,.2)');
+
 const sim = d3.forceSimulation()
   .force('link', d3.forceLink().id(d => d.id).distance(130))
   .force('charge', d3.forceManyBody().strength(-500))
-  .force('center', d3.forceCenter(W/2, H/2))
+  .force('center', d3.forceCenter(treeWidth() / 2, treeHeight() / 2))
   .force('collision', d3.forceCollide().radius(d => nodeR(d) + 20));
 
-function nodeR(d) { return 14 + d.level * 5; }
+sim.on('tick', () => {
+  gLink.selectAll('.d3-link')
+    .attr('x1', d => d.source.x)
+    .attr('y1', d => d.source.y)
+    .attr('x2', d => d.target.x)
+    .attr('y2', d => d.target.y);
+  gNode.selectAll('.d3-node')
+    .attr('transform', d => `translate(${d.x},${d.y})`);
+});
 
-function render() {
-  // LINKS
-  const linkSel = gLink.selectAll('.d3-link').data(links, d => `${d.source.id||d.source}-${d.target.id||d.target}`);
-  linkSel.exit().transition().duration(300).style('opacity',0).remove();
-  const linkEnter = linkSel.enter().append('line')
-    .attr('class','d3-link')
-    .style('opacity',0)
-    .attr('marker-end','url(#arrow)');
-  linkEnter.transition().duration(500).style('opacity',1);
+function treeWidth() {
+  return svgEl.clientWidth || 700;
+}
 
-  // NODES
-  const nodeSel = gNode.selectAll('.d3-node').data(nodes, d => d.id);
-  nodeSel.exit().transition().duration(300).style('opacity',0).remove();
+function treeHeight() {
+  return svgEl.clientHeight || 560;
+}
 
-  const nodeEnter = nodeSel.enter().append('g')
-    .attr('class','d3-node')
-    .style('opacity',0)
-    .call(d3.drag()
-      .on('start', dragStart)
-      .on('drag', dragged)
-      .on('end', dragEnd)
-    )
-    .on('click', onNodeClick)
-    .on('mouseenter', onNodeHover)
-    .on('mouseleave', onNodeLeave);
+function nodeR(node) {
+  return 14 + node.level * 5;
+}
 
-  // glow ring (pulse on root level 5)
-  nodeEnter.append('circle')
-    .attr('class','glow-ring')
-    .attr('r', d => nodeR(d) + 8)
-    .attr('fill', d => d.color)
-    .attr('opacity', d => d.level >= 5 ? 0.12 : 0)
-    .each(function(d) {
-      if(d.level >= 5) {
-        d3.select(this).append('animate')
-          .attr('attributeName','r')
-          .attr('values', `${nodeR(d)+4};${nodeR(d)+14};${nodeR(d)+4}`)
-          .attr('dur','2.5s').attr('repeatCount','indefinite');
-        d3.select(this).append('animate')
-          .attr('attributeName','opacity')
-          .attr('values','0.12;0;0.12')
-          .attr('dur','2.5s').attr('repeatCount','indefinite');
-      }
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return 'recently';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.max(0, Math.floor(diff / 86400000));
+  if (days === 0) return 'today';
+  if (days === 1) return '1 day ago';
+  if (days < 7) return `${days} days ago`;
+  const weeks = Math.floor(days / 7);
+  return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+}
+
+function rankForLevel(level) {
+  if (level >= 35) return 'S';
+  if (level >= 25) return 'A';
+  if (level >= 15) return 'B';
+  return 'C';
+}
+
+function flashSFX(text, color = '#F5C842') {
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-8deg);
+    font-family:'Bangers',cursive;font-size:5rem;letter-spacing:4px;
+    color:${color};-webkit-text-stroke:3px #1A1A1A;text-shadow:5px 5px 0 #E63B3B;
+    pointer-events:none;z-index:9000;`;
+  el.textContent = text;
+  document.body.appendChild(el);
+  gsap.fromTo(el, { scale: 0.5, opacity: 0 }, { scale: 1.2, opacity: 1, duration: 0.3, ease: 'back.out(2)' });
+  gsap.to(el, { scale: 1.5, opacity: 0, duration: 0.5, delay: 0.5, ease: 'power2.in', onComplete: () => el.remove() });
+}
+
+function updateNavButton() {
+  $('navAuthBtn').textContent = state.viewer?.display_name
+    ? state.viewer.display_name.split(' ')[0].toUpperCase()
+    : 'LOGIN';
+}
+
+function categoryForSkill(name = '') {
+  const normalized = name.toLowerCase();
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some(keyword => normalized.includes(keyword))) {
+      return category;
+    }
+  }
+  return 'backend';
+}
+
+function updateSkillBars(skills) {
+  const totals = { frontend: [], backend: [], devops: [], ml: [] };
+  skills.forEach(skill => {
+    totals[categoryForSkill(skill.id)].push(skill.level);
+  });
+
+  [
+    ['frontend', 'frontendFill', 'frontendVal'],
+    ['backend', 'backendFill', 'backendVal'],
+    ['devops', 'devopsFill', 'devopsVal'],
+    ['ml', 'mlFill', 'mlVal'],
+  ].forEach(([key, fillId, valueId]) => {
+    const levels = totals[key];
+    const percent = levels.length
+      ? Math.round((levels.reduce((sum, level) => sum + level, 0) / (levels.length * 5)) * 100)
+      : 0;
+    $(fillId).style.width = `${percent}%`;
+    $(valueId).textContent = String(percent);
+  });
+}
+
+function setSelectedColor(color) {
+  state.selectedColor = color;
+  document.querySelectorAll('.color-opt').forEach(opt => {
+    opt.classList.toggle('selected', opt.dataset.color === color);
+  });
+}
+
+function openSkillModal(skill = null) {
+  state.editingSkillId = skill?._dbId || null;
+  $('skillModalTitle').textContent = state.editingSkillId ? 'EDIT SKILL' : '+ ADD SKILL';
+  $('addSkillBtn').textContent = state.editingSkillId ? 'SAVE CHANGES ⚡' : 'ADD SKILL ⚡';
+  $('skillName').value = skill?.id || '';
+  $('skillName').disabled = !!state.editingSkillId;
+  $('skillLevel').value = String(skill?.level || 3);
+  $('skillProofUrl').value = skill?.proof_url || '';
+  $('skillName').style.borderColor = '';
+  $('skillProofUrl').style.borderColor = '';
+  setSelectedColor(skill?.color || '#E63B3B');
+  $('modal').classList.add('open');
+  $('skillName').focus();
+}
+
+function closeSkillModal() {
+  state.editingSkillId = null;
+  $('modal').classList.remove('open');
+  $('skillName').disabled = false;
+}
+
+function renderEmptyState(container, text) {
+  container.innerHTML = `<div class="empty-state">${escapeHtml(text)}</div>`;
+}
+
+function renderVouches() {
+  const list = $('vouchList');
+  if (!state.vouches.length) {
+    renderEmptyState(list, 'No vouches yet.');
+    return;
+  }
+
+  list.innerHTML = state.vouches.map(vouch => `
+    <div class="vouch-item">
+      <div class="vouch-av" style="background:${escapeHtml(vouch.avatar_color || '#E63B3B')}">${escapeHtml(vouch.avatar_initials || '??')}</div>
+      <div class="vouch-text">
+        <div class="vouch-name">${escapeHtml(vouch.voucher_name)}</div>
+        <div class="vouch-skill"><span class="vouch-check">✓</span> Vouched ${escapeHtml(vouch.skill_name)} · Lv.${escapeHtml(vouch.skill_level)}</div>
+        <div class="vouch-time">${escapeHtml(timeAgo(vouch.created_at))}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderMatches() {
+  const container = $('profileMatchList');
+  if (!state.canEdit) {
+    renderEmptyState(container, 'Complement matches unlock on your own profile.');
+    return;
+  }
+  if (!state.matches.length) {
+    renderEmptyState(container, 'No match data yet. Add more skills to compute matches.');
+    return;
+  }
+
+  container.innerHTML = state.matches.slice(0, 3).map(match => {
+    const initials = escapeHtml(match.avatar_initials || match.display_name.split(' ').map(word => word[0]).join('').slice(0, 2).toUpperCase());
+    const fills = (match.fills_your_gaps || []).slice(0, 3).map(skill => `<span class="match-tag">${escapeHtml(skill.name)} ↑</span>`).join('');
+    return `
+      <div class="match-card">
+        <div class="match-head">
+          <div class="match-user">
+            <div class="match-av" style="background:${escapeHtml(match.avatar_color || '#1A7FC2')}">${initials}</div>
+            <div>
+              <div class="match-name">${escapeHtml(match.display_name)}</div>
+              <div class="match-role">${escapeHtml(match.role_title || 'Developer')}</div>
+            </div>
+          </div>
+          <div class="match-pct">${Math.round(match.score || 0)}%</div>
+        </div>
+        <div class="match-skills">${fills || '<span class="match-tag">Shared strengths</span>'}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderActivity() {
+  const container = $('activityItems');
+  const activity = [];
+  const ownerLabel = state.canEdit ? 'your' : `${state.profile?.display_name || 'their'}'s`;
+
+  state.vouches.forEach(vouch => {
+    activity.push({
+      type: 'vouch',
+      label: '✓ VOUCHED',
+      text: `${vouch.voucher_name} vouched ${ownerLabel} ${vouch.skill_name} skill`,
+      time: vouch.created_at,
+    });
+  });
+
+  state.nodes.forEach(skill => {
+    activity.push({
+      type: 'level',
+      label: '↑ SKILL',
+      text: `Added ${skill.id} at Lv.${skill.level}`,
+      time: skill.created_at,
+    });
+  });
+
+  state.matches.forEach(match => {
+    activity.push({
+      type: 'match',
+      label: '⚡ MATCHED',
+      text: `Complement match: ${match.display_name} (${Math.round(match.score || 0)}%)`,
+      time: match.computed_at,
+    });
+  });
+
+  activity.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
+  if (!activity.length) {
+    renderEmptyState(container, 'No recent activity yet.');
+    return;
+  }
+
+  container.innerHTML = activity.slice(0, 6).map(item => `
+    <div class="activity-item">
+      <div class="ai-type ${escapeHtml(item.type)}">${escapeHtml(item.label)}</div>
+      <div class="ai-text">${escapeHtml(item.text)}</div>
+      <div class="ai-time">${escapeHtml(timeAgo(item.time))}</div>
+    </div>
+  `).join('');
+}
+
+function renderSkillList() {
+  const list = $('skillList');
+  if (!state.nodes.length) {
+    renderEmptyState(list, state.canEdit ? 'Add your first skill to start your tree.' : 'This profile has no skills yet.');
+    return;
+  }
+
+  list.innerHTML = '';
+  [...state.nodes].sort((a, b) => b.level - a.level || a.id.localeCompare(b.id)).forEach(skill => {
+    const item = document.createElement('div');
+    item.className = 'skill-item';
+
+    const dots = Array.from({ length: 5 }, (_, index) => {
+      const active = index < skill.level;
+      const style = active ? `background:${skill.color};border-color:${skill.color};` : '';
+      return `<div class="sdot${active ? ' filled' : ''}" style="${style}"></div>`;
+    }).join('');
+
+    let actions = '';
+    if (state.canEdit) {
+      actions = `
+        <button class="skill-action-btn" data-action="edit">Edit</button>
+        <button class="skill-action-btn danger" data-action="delete">Delete</button>
+      `;
+    } else if (state.viewer) {
+      actions = `<button class="skill-action-btn primary" data-action="vouch">Vouch</button>`;
+    } else {
+      actions = `<button class="skill-action-btn primary" data-action="login">Login</button>`;
+    }
+
+    item.innerHTML = `
+      <div class="skill-dot" style="background:${escapeHtml(skill.color)}"></div>
+      <div class="skill-main">
+        <span class="skill-name">${escapeHtml(skill.id)}</span>
+        <div class="skill-meta">${LEVEL_LABELS[skill.level]} · ${skill.vouches || 0} vouches</div>
+        <div class="skill-proof">${skill.proof_url ? `<a href="${escapeHtml(skill.proof_url)}" target="_blank" rel="noopener noreferrer">Proof ↗</a>` : ''}</div>
+      </div>
+      <div class="skill-right">
+        <div class="skill-level-dots">${dots}</div>
+        <div class="skill-actions">${actions}</div>
+      </div>
+    `;
+
+    item.addEventListener('click', () => focusNode(skill.id));
+    item.querySelectorAll('.skill-action-btn').forEach(button => {
+      button.addEventListener('click', async event => {
+        event.stopPropagation();
+        const action = button.dataset.action;
+        if (action === 'edit') {
+          openSkillModal(skill);
+          return;
+        }
+        if (action === 'delete') {
+          if (!window.confirm(`Delete ${skill.id} from your skill tree?`)) return;
+          try {
+            await API.deleteSkill(skill._dbId);
+            flashSFX('DELETED!', '#E63B3B');
+            await loadProfile();
+          } catch (error) {
+            window.alert(error.message || 'Could not delete skill.');
+          }
+          return;
+        }
+        if (action === 'login') {
+          AuthModal.show();
+          return;
+        }
+        if (action === 'vouch') {
+          const message = window.prompt(`Add a short vouch for ${skill.id} (optional):`, '');
+          if (message === null) return;
+          try {
+            await API.createVouch(skill._dbId, message.trim());
+            flashSFX('VOUCHED!', '#2A9B7A');
+            await loadProfile();
+          } catch (error) {
+            window.alert(error.message || 'Could not create vouch.');
+          }
+        }
+      });
     });
 
-  // main circle
-  nodeEnter.append('circle')
-    .attr('r', d => nodeR(d))
-    .attr('fill', d => d.color)
+    list.appendChild(item);
+  });
+}
+
+function normalizeLinkEndpoints() {
+  state.links.forEach(link => {
+    if (typeof link.source === 'string') {
+      link.source = state.nodes.find(node => node.id === link.source) || link.source;
+    }
+    if (typeof link.target === 'string') {
+      link.target = state.nodes.find(node => node.id === link.target) || link.target;
+    }
+  });
+}
+
+function renderTree() {
+  gLink.selectAll('*').remove();
+  gNode.selectAll('*').remove();
+  normalizeLinkEndpoints();
+
+  if (!state.nodes.length) {
+    renderSkillList();
+    $('treeHint').textContent = state.canEdit
+      ? 'ADD YOUR FIRST SKILL TO START YOUR TREE'
+      : 'THIS PROFILE DOES NOT HAVE A SKILL TREE YET';
+    return;
+  }
+
+  gLink.selectAll('.d3-link')
+    .data(state.links)
+    .enter()
+    .append('line')
+    .attr('class', 'd3-link')
+    .attr('marker-end', 'url(#arrow)');
+
+  const nodeSelection = gNode.selectAll('.d3-node')
+    .data(state.nodes, node => node.id)
+    .enter()
+    .append('g')
+    .attr('class', 'd3-node')
+    .call(d3.drag().on('start', dragStart).on('drag', dragged).on('end', dragEnd))
+    .on('click', function(event, node) {
+      onNodeClick.call(this, event, node);
+    });
+
+  nodeSelection.append('circle')
+    .attr('class', 'glow-ring')
+    .attr('r', node => nodeR(node) + 8)
+    .attr('fill', node => node.color)
+    .attr('opacity', node => node.level >= 5 ? 0.12 : 0);
+
+  nodeSelection.append('circle')
+    .attr('r', node => nodeR(node))
+    .attr('fill', node => node.color)
     .attr('stroke', '#1A1A1A')
     .attr('stroke-width', 3);
 
-  // screentone inner ring
-  nodeEnter.append('circle')
-    .attr('r', d => nodeR(d) - 5)
+  nodeSelection.append('circle')
+    .attr('r', node => nodeR(node) - 5)
     .attr('fill', 'none')
     .attr('stroke', 'rgba(255,255,255,0.15)')
     .attr('stroke-width', 1.5)
     .attr('stroke-dasharray', '3,3');
 
-  // label
-  nodeEnter.append('text')
-    .attr('class','d3-label')
-    .attr('dy', d => d.level >= 4 ? -4 : 4)
-    .text(d => d.id);
+  nodeSelection.append('text')
+    .attr('class', 'd3-label')
+    .attr('dy', node => node.level >= 4 ? -4 : 4)
+    .text(node => node.id);
 
-  // level text
-  nodeEnter.filter(d => d.level >= 4).append('text')
-    .attr('class','d3-level')
+  nodeSelection.filter(node => node.level >= 4).append('text')
+    .attr('class', 'd3-level')
     .attr('dy', 10)
-    .text(d => `LV.${d.level}`);
+    .text(node => `LV.${node.level}`);
 
-  // vouch badge
-  nodeEnter.append('circle')
-    .attr('class','vouch-badge-bg')
+  nodeSelection.append('circle')
+    .attr('class', 'vouch-badge-bg')
     .attr('r', 9)
-    .attr('cx', d => nodeR(d) - 4)
-    .attr('cy', d => -(nodeR(d) - 4))
+    .attr('cx', node => nodeR(node) - 4)
+    .attr('cy', node => -(nodeR(node) - 4))
     .attr('fill', '#F5C842')
-    .attr('stroke','#1A1A1A').attr('stroke-width',2);
+    .attr('stroke', '#1A1A1A')
+    .attr('stroke-width', 2);
 
-  nodeEnter.append('text')
-    .attr('class','d3-vouch')
-    .attr('x', d => nodeR(d) - 4)
-    .attr('y', d => -(nodeR(d) - 4) + 1)
-    .text(d => d.vouches || 0);
+  nodeSelection.append('text')
+    .attr('class', 'd3-vouch')
+    .attr('x', node => nodeR(node) - 4)
+    .attr('y', node => -(nodeR(node) - 4) + 1)
+    .text(node => node.vouches || 0);
 
-  nodeEnter.transition().duration(500)
-    .style('opacity', 1)
-    .attr('transform', d => `translate(${d.x||W/2},${d.y||H/2})`);
+  sim.nodes(state.nodes);
+  sim.force('link').links(state.links);
+  sim.force('center', d3.forceCenter(treeWidth() / 2, treeHeight() / 2));
+  sim.alpha(0.35).restart();
 
-  // update sim
-  sim.nodes(nodes);
-  sim.force('link').links(links);
-  sim.alpha(0.3).restart();
-
-  // update skill list sidebar
   renderSkillList();
+  $('treeHint').textContent = state.connectMode
+    ? 'CONNECT MODE ON — CLICK A NODE TO START CONNECTING'
+    : 'DRAG NODES · CLICK TO SELECT · ADD SKILL TO EXPAND YOUR TREE';
 }
 
-// tick
-sim.on('tick', () => {
-  gLink.selectAll('.d3-link')
-    .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-    .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
-  gNode.selectAll('.d3-node')
-    .attr('transform', d => `translate(${d.x},${d.y})`);
-});
-
-// drag
-function dragStart(event, d) {
-  if(!event.active) sim.alphaTarget(.3).restart();
-  d.fx = d.x; d.fy = d.y;
-}
-function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
-function dragEnd(event, d) {
-  if(!event.active) sim.alphaTarget(0);
-  d.fx = null; d.fy = null;
+function dragStart(event, node) {
+  if (!event.active) sim.alphaTarget(0.3).restart();
+  node.fx = node.x;
+  node.fy = node.y;
 }
 
-/* ── NODE CLICK ── */
-function onNodeClick(event, d) {
-  if(connectMode) {
-    if(!connectSource) {
-      // First node selected
-      connectSource = d;
-      d3.select(this).classed('connecting', true);
-      document.getElementById('treeHint').textContent = `NOW CLICK ANOTHER NODE TO CONNECT TO "${d.id.toUpperCase()}"`;
-    } else if(connectSource.id !== d.id) {
-      // Second node — create link if not exists
-      const exists = links.some(l =>
-        (l.source.id||l.source) === connectSource.id && (l.target.id||l.target) === d.id ||
-        (l.source.id||l.source) === d.id && (l.target.id||l.target) === connectSource.id
-      );
-      if(!exists) {
-        links.push({ source: connectSource.id, target: d.id });
-        render();
-        flashSFX('LINKED!');
-      }
-      // Reset
-      gNode.selectAll('.d3-node').classed('connecting', false);
-      connectSource = null;
-      document.getElementById('treeHint').textContent = 'CLICK ANOTHER NODE TO CONNECT · CLICK SAME NODE TO DESELECT';
-    }
-  } else {
-    // Show detail
-    gNode.selectAll('.d3-node').classed('selected', false);
-    d3.select(this).classed('selected', true);
-    showNodeDetail(d, event);
-  }
+function dragged(event, node) {
+  node.fx = event.x;
+  node.fy = event.y;
 }
 
-function onNodeHover(event, d) {
-  document.body.classList.add('hov');
-}
-function onNodeLeave() {
-  document.body.classList.remove('hov');
+function dragEnd(event, node) {
+  if (!event.active) sim.alphaTarget(0);
+  node.fx = null;
+  node.fy = null;
 }
 
-/* ── NODE DETAIL TOOLTIP ── */
-function showNodeDetail(d, event) {
-  const nd = document.getElementById('nodeDetail');
-  document.getElementById('nd-name').textContent = d.id;
-  document.getElementById('nd-level').textContent = `LV.${d.level} — ${['','Beginner','Familiar','Proficient','Advanced','Expert'][d.level]}`;
-  const dots = document.getElementById('nd-dots');
+function clearNodeSelections() {
+  gNode.selectAll('.d3-node').classed('connecting', false).classed('selected', false);
+}
+
+function findLinkBetween(leftId, rightId) {
+  return state.links.find(link => {
+    const source = link.source.id || link.source;
+    const target = link.target.id || link.target;
+    return (source === leftId && target === rightId) || (source === rightId && target === leftId);
+  }) || null;
+}
+
+function showNodeDetail(node, event) {
+  const detail = $('nodeDetail');
+  $('nd-name').textContent = node.id;
+  $('nd-level').textContent = `LV.${node.level} — ${LEVEL_LABELS[node.level]}`;
+  const dots = $('nd-dots');
   dots.innerHTML = '';
-  for(let i=1;i<=5;i++){
+  for (let index = 1; index <= 5; index += 1) {
     const dot = document.createElement('div');
-    dot.className = 'nd-dot' + (i<=d.level?' filled':'');
-    if(i<=d.level) dot.style.background = d.color;
+    dot.className = `nd-dot${index <= node.level ? ' filled' : ''}`;
+    if (index <= node.level) dot.style.background = node.color;
     dots.appendChild(dot);
   }
-  document.getElementById('nd-vouches').textContent = `✦ ${d.vouches||0} vouches from peers`;
+  $('nd-vouches').innerHTML = node.proof_url
+    ? `✦ ${node.vouches || 0} vouches · <a href="${escapeHtml(node.proof_url)}" target="_blank" rel="noopener noreferrer">Proof ↗</a>`
+    : `✦ ${node.vouches || 0} vouches from peers`;
 
-  // position near node
   const rect = svgEl.getBoundingClientRect();
-  nd.style.display = 'block';
-  nd.style.left = (event.pageX - rect.left + 16) + 'px';
-  nd.style.top  = (event.pageY - rect.top - 20) + 'px';
+  detail.style.display = 'block';
+  detail.style.left = `${event.pageX - rect.left + 16}px`;
+  detail.style.top = `${event.pageY - rect.top - 20}px`;
   setTimeout(() => {
-    nd.style.display = 'none';
-    gNode.selectAll('.d3-node').classed('selected', false);
+    detail.style.display = 'none';
+    clearNodeSelections();
   }, 3000);
 }
 
-/* ── FLASH SFX ── */
-function flashSFX(text) {
-  const el = document.createElement('div');
-  el.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-8deg);
-    font-family:'Bangers',cursive;font-size:5rem;letter-spacing:4px;
-    color:#F5C842;-webkit-text-stroke:3px #1A1A1A;text-shadow:5px 5px 0 #E63B3B;
-    pointer-events:none;z-index:9000;`;
-  el.textContent = text;
-  document.body.appendChild(el);
-  gsap.fromTo(el, {scale:.5,opacity:0}, {scale:1.2,opacity:1,duration:.3,ease:'back.out(2)'});
-  gsap.to(el, {scale:1.5,opacity:0,duration:.5,delay:.5,ease:'power2.in',onComplete:()=>el.remove()});
-}
-
-/* ══════════════════════════════════════
-   CONTROLS
-══════════════════════════════════════ */
-// ADD button → open modal
-document.getElementById('btnAdd').addEventListener('click', () => {
-  document.getElementById('modal').classList.add('open');
-  document.getElementById('skillName').focus();
-});
-
-// CONNECT MODE toggle
-document.getElementById('btnConnect').addEventListener('click', () => {
-  connectMode = !connectMode;
-  connectSource = null;
-  gNode.selectAll('.d3-node').classed('connecting',false).classed('selected',false);
-  document.getElementById('btnConnect').classList.toggle('active', connectMode);
-  document.getElementById('treeHint').textContent = connectMode
-    ? 'CONNECT MODE ON — CLICK A NODE TO START CONNECTING'
-    : 'DRAG NODES · CLICK TO SELECT · ADD SKILL TO EXPAND YOUR TREE';
-  if(connectMode) flashSFX('CONNECT!');
-});
-
-// RESET
-document.getElementById('btnReset').addEventListener('click', () => {
-  nodes.forEach(d => { d.fx = null; d.fy = null; });
-  sim.alpha(0.8).restart();
-});
-
-/* ══════════════════════════════════════
-   MODAL
-══════════════════════════════════════ */
-// color picker
-document.getElementById('colorRow').addEventListener('click', e => {
-  const opt = e.target.closest('.color-opt');
-  if(!opt) return;
-  document.querySelectorAll('.color-opt').forEach(o => o.classList.remove('selected'));
-  opt.classList.add('selected');
-  selectedColor = opt.dataset.color;
-});
-
-// cancel
-document.getElementById('cancelBtn').addEventListener('click', () => {
-  document.getElementById('modal').classList.remove('open');
-});
-document.getElementById('modal').addEventListener('click', e => {
-  if(e.target === document.getElementById('modal')) document.getElementById('modal').classList.remove('open');
-});
-
-// add skill
-document.getElementById('addSkillBtn').addEventListener('click', () => {
-  const name = document.getElementById('skillName').value.trim();
-  if(!name) { document.getElementById('skillName').style.borderColor='#E63B3B'; return; }
-  const level = parseInt(document.getElementById('skillLevel').value);
-  const exists = nodes.find(n => n.id.toLowerCase() === name.toLowerCase());
-  if(exists) { document.getElementById('skillName').style.borderColor='#E63B3B'; return; }
-
-  nodes.push({ id: name, level, color: selectedColor, vouches: 0 });
-  render();
-  flashSFX('NEW SKILL!');
-
-  // Save to API if backend is running
-  const userId = localStorage.getItem('sf_user_id');
-  if (userId) {
-    API.addSkill({ name, level, color: selectedColor }).catch(() => {});
+async function onNodeClick(event, node) {
+  if (!state.connectMode) {
+    clearNodeSelections();
+    d3.select(this).classed('selected', true);
+    showNodeDetail(node, event);
+    return;
   }
-  document.getElementById('modal').classList.remove('open');
-  document.getElementById('skillName').value = '';
-  document.getElementById('skillLevel').value = '3';
-});
 
-// Enter key in input
-document.getElementById('skillName').addEventListener('keydown', e => {
-  if(e.key==='Enter') document.getElementById('addSkillBtn').click();
-});
+  if (!state.canEdit) {
+    flashSFX('LOCKED', '#E63B3B');
+    return;
+  }
 
-/* ══════════════════════════════════════
-   SKILL LIST SIDEBAR
-══════════════════════════════════════ */
-const LEVEL_LABELS = ['','Beginner','Familiar','Proficient','Advanced','Expert'];
-function renderSkillList() {
-  const list = document.getElementById('skillList');
-  list.innerHTML = '';
-  [...nodes].sort((a,b)=>b.level-a.level).forEach(d => {
-    const item = document.createElement('div');
-    item.className = 'skill-item';
-    const dots = Array.from({length:5},(_,i)=>`<div class="sdot${i<d.level?' filled':''}" style="${i<d.level?'background:'+d.color+';border-color:'+d.color:''}"></div>`).join('');
-    item.innerHTML = `
-      <div class="skill-dot" style="background:${d.color}"></div>
-      <span class="skill-name">${d.id}</span>
-      <div style="font-size:.68rem;color:#888;font-style:italic;margin-right:.5rem;">${LEVEL_LABELS[d.level]}</div>
-      <div class="skill-level-dots">${dots}</div>
-    `;
-    list.appendChild(item);
+  if (!state.connectSource) {
+    state.connectSource = node;
+    clearNodeSelections();
+    d3.select(this).classed('connecting', true);
+    $('treeHint').textContent = `NOW CLICK ANOTHER NODE TO CONNECT TO "${node.id.toUpperCase()}"`;
+    return;
+  }
+
+  if (state.connectSource.id === node.id) {
+    state.connectSource = null;
+    clearNodeSelections();
+    $('treeHint').textContent = 'CONNECT MODE ON — CLICK A NODE TO START CONNECTING';
+    return;
+  }
+
+  const existing = findLinkBetween(state.connectSource.id, node.id);
+  try {
+    if (existing) {
+      await API.deleteEdge(existing._edgeId);
+      state.links = state.links.filter(link => link !== existing);
+      flashSFX('UNLINKED!', '#E63B3B');
+    } else {
+      const created = await API.addEdge(state.connectSource._dbId, node._dbId);
+      state.links.push({ _edgeId: created.id, source: state.connectSource.id, target: node.id });
+      flashSFX('LINKED!', '#2A9B7A');
+    }
+    renderTree();
+  } catch (error) {
+    window.alert(error.message || 'Could not update skill connection.');
+  } finally {
+    state.connectSource = null;
+    clearNodeSelections();
+    $('treeHint').textContent = 'CONNECT MODE ON — CLICK A NODE TO START CONNECTING';
+  }
+}
+
+function focusNode(skillId) {
+  clearNodeSelections();
+  gNode.selectAll('.d3-node').filter(node => node.id === skillId).classed('selected', true);
+}
+
+function updateProfileHeader(user) {
+  document.title = `SkillForge - ${user.display_name}'s Profile`;
+  document.querySelector('.profile-name').textContent = user.display_name.toUpperCase();
+  document.querySelector('.profile-title').textContent = `◆ ${user.role_title || 'Developer'} · Open to work`;
+  document.querySelector('.profile-bio').textContent = user.bio ? `"${user.bio}"` : '"No bio yet."';
+  document.querySelector('.avatar').textContent = user.avatar_initials || '??';
+  $('avatarBadge').textContent = `LVL ${user.level || 1}`;
+  $('profileRank').textContent = `⚡ RANK ${rankForLevel(user.level || 1)}`;
+  $('xpValue').textContent = String(user.xp || 0);
+}
+
+function updateSidebarCopy() {
+  $('btnAdd').style.display = state.canEdit ? '' : 'none';
+  $('btnConnect').style.display = state.canEdit ? '' : 'none';
+  $('btnReset').style.display = state.canEdit ? '' : 'none';
+
+  if (state.canEdit) {
+    $('bubbleAside').textContent = state.vouches.length
+      ? `${state.vouches.length} vouches and counting. Your tree is growing.`
+      : 'Add skills, connect them, and start earning real vouches.';
+    return;
+  }
+
+  $('bubbleAside').textContent = state.viewer
+    ? `You are viewing ${state.profile.display_name}'s public skill tree.`
+    : 'Log in to vouch for skills and build your own tree.';
+}
+
+function renderStats() {
+  $('vs').textContent = String(state.vouches.length);
+  $('ss').textContent = String(state.nodes.length);
+  $('ms').textContent = String(state.matches.length);
+  updateSkillBars(state.nodes);
+}
+
+function mapProfileData(profileData, treeData, vouches, matches) {
+  state.profile = profileData.user;
+  state.nodes = (treeData.nodes || []).map(node => ({
+    id: node.name,
+    level: node.level,
+    color: node.color || '#E63B3B',
+    vouches: node.vouch_count || 0,
+    proof_url: node.proof_url || '',
+    created_at: node.created_at,
+    _dbId: node.id,
+  }));
+  state.links = (treeData.edges || []).map(edge => ({
+    _edgeId: edge.id,
+    source: state.nodes.find(node => node._dbId === edge.source)?.id || edge.source,
+    target: state.nodes.find(node => node._dbId === edge.target)?.id || edge.target,
+  }));
+  state.vouches = Array.isArray(vouches) ? vouches : [];
+  state.matches = Array.isArray(matches) ? matches : [];
+}
+
+async function loadViewer() {
+  if (!API.isLoggedIn()) {
+    state.viewer = null;
+    updateNavButton();
+    return;
+  }
+
+  try {
+    state.viewer = await API.me();
+    localStorage.setItem('sf_user_id', state.viewer.id);
+  } catch {
+    state.viewer = null;
+  }
+  updateNavButton();
+}
+
+function resolveViewedUserId() {
+  const paramId = new URLSearchParams(window.location.search).get('id');
+  if (paramId) return paramId;
+  if (state.viewer?.id) return state.viewer.id;
+  return 1;
+}
+
+async function loadProfile() {
+  state.viewedUserId = resolveViewedUserId();
+  state.canEdit = !!state.viewer && String(state.viewer.id) === String(state.viewedUserId);
+  state.connectMode = false;
+  state.connectSource = null;
+  clearNodeSelections();
+
+  try {
+    const [profileData, treeData, vouches, matches] = await Promise.all([
+      API.getProfile(state.viewedUserId),
+      API.getSkillTree(state.viewedUserId),
+      API.getVouches(state.viewedUserId),
+      state.canEdit ? API.getMatches(state.viewedUserId, 5).catch(() => []) : Promise.resolve([]),
+    ]);
+
+    mapProfileData(profileData, treeData, vouches, matches);
+    updateProfileHeader(profileData.user);
+    updateSidebarCopy();
+    renderStats();
+    renderTree();
+    renderVouches();
+    renderMatches();
+    renderActivity();
+  } catch (error) {
+    state.profile = null;
+    state.nodes = [];
+    state.links = [];
+    state.vouches = [];
+    state.matches = [];
+    renderTree();
+    renderVouches();
+    renderMatches();
+    renderActivity();
+    $('bubbleAside').textContent = error.message || 'Could not load this profile.';
+    window.alert(error.message || 'Could not load profile.');
+  }
+}
+
+async function saveSkill() {
+  const name = $('skillName').value.trim();
+  const proofUrl = $('skillProofUrl').value.trim();
+  if (!name) {
+    $('skillName').style.borderColor = '#E63B3B';
+    return;
+  }
+
+  const level = parseInt($('skillLevel').value, 10);
+  const payload = {
+    level,
+    color: state.selectedColor,
+    proof_url: proofUrl || null,
+  };
+
+  try {
+    if (state.editingSkillId) {
+      await API.updateSkill(state.editingSkillId, payload);
+      flashSFX('UPDATED!', '#1A7FC2');
+    } else {
+      const exists = state.nodes.some(node => node.id.toLowerCase() === name.toLowerCase());
+      if (exists) {
+        $('skillName').style.borderColor = '#E63B3B';
+        return;
+      }
+      await API.addSkill({ name, ...payload });
+      flashSFX('NEW SKILL!', '#2A9B7A');
+    }
+    closeSkillModal();
+    await loadProfile();
+  } catch (error) {
+    window.alert(error.message || 'Could not save skill.');
+  }
+}
+
+function bindStaticEvents() {
+  document.querySelector('.bubble-aside').id = 'bubbleAside';
+
+  document.addEventListener('mousemove', event => {
+    cur.style.left = `${event.clientX}px`;
+    cur.style.top = `${event.clientY}px`;
+  });
+
+  document.addEventListener('mouseover', event => {
+    if (event.target.closest('a,button,.skill-item,.match-card,.activity-item,.d3-node,.color-opt')) {
+      document.body.classList.add('hov');
+    }
+  });
+  document.addEventListener('mouseout', event => {
+    if (event.target.closest('a,button,.skill-item,.match-card,.activity-item,.d3-node,.color-opt')) {
+      document.body.classList.remove('hov');
+    }
+  });
+
+  $('navAuthBtn').addEventListener('click', () => {
+    if (API.isLoggedIn()) {
+      API.logout();
+      return;
+    }
+    AuthModal.show();
+  });
+
+  $('btnAdd').addEventListener('click', () => openSkillModal());
+  $('btnConnect').addEventListener('click', () => {
+    if (!state.canEdit) return;
+    state.connectMode = !state.connectMode;
+    state.connectSource = null;
+    clearNodeSelections();
+    $('btnConnect').classList.toggle('active', state.connectMode);
+    $('treeHint').textContent = state.connectMode
+      ? 'CONNECT MODE ON — CLICK A NODE TO START CONNECTING'
+      : 'DRAG NODES · CLICK TO SELECT · ADD SKILL TO EXPAND YOUR TREE';
+    if (state.connectMode) flashSFX('CONNECT!', '#E63B3B');
+  });
+
+  $('btnReset').addEventListener('click', () => {
+    state.nodes.forEach(node => {
+      node.fx = null;
+      node.fy = null;
+    });
+    sim.force('center', d3.forceCenter(treeWidth() / 2, treeHeight() / 2));
+    sim.alpha(0.8).restart();
+  });
+
+  $('colorRow').addEventListener('click', event => {
+    const option = event.target.closest('.color-opt');
+    if (!option) return;
+    setSelectedColor(option.dataset.color);
+  });
+
+  $('cancelBtn').addEventListener('click', closeSkillModal);
+  $('modal').addEventListener('click', event => {
+    if (event.target === $('modal')) closeSkillModal();
+  });
+  $('addSkillBtn').addEventListener('click', saveSkill);
+  $('skillName').addEventListener('keydown', event => {
+    if (event.key === 'Enter') saveSkill();
+  });
+
+  window.addEventListener('resize', () => {
+    sim.force('center', d3.forceCenter(treeWidth() / 2, treeHeight() / 2));
+    sim.alpha(0.2).restart();
   });
 }
 
-/* ══════════════════════════════════════
-   INIT
-══════════════════════════════════════ */
-loadProfile();
+async function bootstrap() {
+  bindStaticEvents();
+  setSelectedColor('#E63B3B');
+  updateNavButton();
+  await loadViewer();
+  await loadProfile();
 
-// Animate stat bars on load
-setTimeout(() => {
-  document.querySelectorAll('.bar-fill').forEach(b => {
-    const w = b.style.width;
-    b.style.width = '0';
-    setTimeout(() => b.style.width = w, 100);
+  document.addEventListener('sf:login', async () => {
+    await loadViewer();
+    if (!new URLSearchParams(window.location.search).get('id') && state.viewer?.id) {
+      window.history.replaceState({}, '', `profile.html?id=${state.viewer.id}`);
+    }
+    await loadProfile();
   });
-}, 300);
 
-// Entrance animation
-gsap.from('.profile-header', { y: -30, opacity: 0, duration: .8, ease: 'power3.out', delay: .1 });
-gsap.from('.content-grid',   { y: 30,  opacity: 0, duration: .8, ease: 'power3.out', delay: .3 });
-gsap.from('.activity-strip', { y: 20,  opacity: 0, duration: .7, ease: 'power2.out', delay: .5 });
+  gsap.from('.profile-header', { y: -30, opacity: 0, duration: 0.8, ease: 'power3.out', delay: 0.1 });
+  gsap.from('.content-grid', { y: 30, opacity: 0, duration: 0.8, ease: 'power3.out', delay: 0.3 });
+  gsap.from('.activity-strip', { y: 20, opacity: 0, duration: 0.7, ease: 'power2.out', delay: 0.5 });
+}
+
+bootstrap();
 </script>
 </body>
 </html>

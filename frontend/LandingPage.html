@@ -803,7 +803,7 @@ footer p { font-size: .7rem; color: rgba(245,240,232,.2); letter-spacing: 1px; f
     <li><a href="#how">HOW IT WORKS</a></li>
     <li><a href="#features">FEATURES</a></li>
     <li><a href="#testimonials">COMMUNITY</a></li>
-    <li><button class="nav-btn">START NOW</button></li>
+    <li><button class="nav-btn" id="navStartBtn">START NOW</button></li>
   </ul>
 </nav>
 
@@ -838,7 +838,7 @@ footer p { font-size: .7rem; color: rgba(245,240,232,.2); letter-spacing: 1px; f
           </div>
 
           <div style="margin-top:2rem;display:flex;gap:1rem;flex-wrap:wrap;">
-            <button class="nav-btn" style="font-size:1.1rem;padding:.6rem 2rem;">BUILD YOUR TREE →</button>
+            <button class="nav-btn" id="heroBuildBtn" style="font-size:1.1rem;padding:.6rem 2rem;">BUILD YOUR TREE →</button>
             <a href="#how" style="font-family:'Bangers',cursive;font-size:1.1rem;letter-spacing:2px;color:rgba(245,240,232,.4);text-decoration:none;display:flex;align-items:center;cursor:none;transition:color .2s;">SEE HOW ↓</a>
           </div>
         </div>
@@ -850,23 +850,23 @@ footer p { font-size: .7rem; color: rgba(245,240,232,.2); letter-spacing: 1px; f
       <div class="panel-b screentone">
         <div class="speed-bg" style="opacity:.06;"></div>
 
-        <span class="impact" style="top:1rem;right:1rem;font-size:1.8rem;">LEVEL 34!</span>
+        <span class="impact" id="featuredImpact" style="top:1rem;right:1rem;font-size:1.8rem;">LEVEL 34!</span>
 
-        <div class="char-name-plate">▶  Namana Kanchan ◀</div>
+        <div class="char-name-plate" id="featuredNamePlate">▶  Namana Kanchan ◀</div>
 
         <div class="mini-tree-card">
           <div class="mtc-head">
             <div style="display:flex;align-items:center;gap:.6rem;">
-              <div class="mtc-avatar">NK</div>
+              <div class="mtc-avatar" id="featuredAvatar">NK</div>
               <div>
-                <span class="mtc-name">Namana Kanchan</span>
-                <span class="mtc-role">Software Engineer</span>
+                <span class="mtc-name" id="featuredName">Namana Kanchan</span>
+                <span class="mtc-role" id="featuredRole">Software Engineer</span>
               </div>
             </div>
-            <span class="mtc-lvl">LVL 34</span>
+            <span class="mtc-lvl" id="featuredLevel">LVL 34</span>
           </div>
 
-          <svg class="tree-svg-mini" viewBox="0 0 280 165" fill="none">
+          <svg class="tree-svg-mini" id="featuredTreeSvg" viewBox="0 0 280 165" fill="none">
             <line x1="140" y1="30" x2="65" y2="85" stroke="#1A1A1A" stroke-width="1.5" stroke-opacity=".15"/>
             <line x1="140" y1="30" x2="140" y2="92" stroke="#1A1A1A" stroke-width="1.5" stroke-opacity=".15"/>
             <line x1="140" y1="30" x2="215" y2="85" stroke="#1A1A1A" stroke-width="1.5" stroke-opacity=".15"/>
@@ -895,7 +895,7 @@ footer p { font-size: .7rem; color: rgba(245,240,232,.2); letter-spacing: 1px; f
         </div>
 
         <!-- small thought bubble -->
-        <div class="think" style="margin-top:1.2rem;font-family:'Permanent Marker',cursive;font-size:.72rem;color:#1A1A1A;max-width:220px;">
+        <div class="think" id="featuredThought" style="margin-top:1.2rem;font-family:'Permanent Marker',cursive;font-size:.72rem;color:#1A1A1A;max-width:220px;">
           12 vouches this month... 👀
         </div>
 
@@ -916,15 +916,15 @@ footer p { font-size: .7rem; color: rgba(245,240,232,.2); letter-spacing: 1px; f
       <div class="panel-d screentone-dense">
         <div class="stat-row">
           <span class="stat-n" id="s1">0</span>
-          <span class="stat-l">K+ trees</span>
+          <span class="stat-l" id="s1Label">trees</span>
         </div>
         <div class="stat-row">
           <span class="stat-n" id="s2">0</span>
-          <span class="stat-l">K+ vouches</span>
+          <span class="stat-l" id="s2Label">vouches</span>
         </div>
         <div class="stat-row">
           <span class="stat-n" id="s3">0</span>
-          <span class="stat-l">+ skills</span>
+          <span class="stat-l" id="s3Label">skills</span>
         </div>
       </div>
 
@@ -933,7 +933,7 @@ footer p { font-size: .7rem; color: rgba(245,240,232,.2); letter-spacing: 1px; f
 
   <!-- ══ TICKER ══ -->
   <div class="ticker-panel">
-    <div class="ticker-track">
+    <div class="ticker-track" id="activityTicker">
       <div class="ti"><span class="ti-who">MAYA S.</span><span class="ti-dot">▶</span><span class="ti-what">Vouched React · Lv.4</span></div>
       <div class="ti"><span class="ti-who">JAMES K.</span><span class="ti-dot">▶</span><span class="ti-what">Leveled up Python · Lv.5</span></div>
       <div class="ti"><span class="ti-who">PRIYA M.</span><span class="ti-dot">▶</span><span class="ti-what">Found complement match</span></div>
@@ -1054,7 +1054,7 @@ footer p { font-size: .7rem; color: rgba(245,240,232,.2); letter-spacing: 1px; f
       <h2>COMMUNITY SPEAKS</h2>
       <span class="pill-tag">Chapter 004</span>
     </div>
-    <div class="speech-grid">
+    <div class="speech-grid" id="testimonialsGrid">
       <div class="speech-card sl d1">
         <div class="speech-bubble-big">
           <p class="sb-text">Finally a way to show my skills that doesn't look like every other LinkedIn profile. My tree got me three interview requests in a single month.</p>
@@ -1108,8 +1108,8 @@ footer p { font-size: .7rem; color: rgba(245,240,232,.2); letter-spacing: 1px; f
       </h2>
       <p class="cta-sub">Your skills deserve a stage, not a spreadsheet. Build your tree in under 5 minutes and let it speak for itself.</p>
       <div class="cta-btns">
-        <button class="cta-btn-main">⚡ BUILD YOUR TREE</button>
-        <button class="cta-btn-sec">SEE EXAMPLES</button>
+        <button class="cta-btn-main" id="ctaBuildBtn">⚡ BUILD YOUR TREE</button>
+        <button class="cta-btn-sec" id="ctaExamplesBtn">SEE EXAMPLES</button>
       </div>
     </div>
     <div class="cta-right">
@@ -1148,6 +1148,8 @@ footer p { font-size: .7rem; color: rgba(245,240,232,.2); letter-spacing: 1px; f
 
 <div class="page-edge"></div>
 
+<script src="api.js"></script>
+<script src="auth-modal.js"></script>
 <script>
 gsap.registerPlugin(ScrollTrigger);
 
@@ -1180,18 +1182,28 @@ const obs = new IntersectionObserver(entries=>{
 },{threshold:.1});
 document.querySelectorAll('.sr,.sl').forEach(el=>obs.observe(el));
 
-/* COUNT UP */
-[{id:'s1',t:12,suf:'K+'},{id:'s2',t:84,suf:'K+'},{id:'s3',t:240,suf:'+'}].forEach(({id,t,suf})=>{
-  const el=document.getElementById(id);
+const landingCounterTriggers = new Set();
+
+function animateCount(id, target) {
+  const el = document.getElementById(id);
+  if (!el || landingCounterTriggers.has(id)) return;
+  landingCounterTriggers.add(id);
   ScrollTrigger.create({
-    trigger:'#hero',start:'top 80%',once:true,
-    onEnter:()=>{
-      gsap.to({v:0},{v:t,duration:2,ease:'power2.out',
-        onUpdate:function(){ el.textContent=Math.floor(this.targets()[0].v)+suf; }
+    trigger: '#hero',
+    start: 'top 80%',
+    once: true,
+    onEnter: () => {
+      gsap.to({ v: 0 }, {
+        v: Math.max(0, Number(target) || 0),
+        duration: 2,
+        ease: 'power2.out',
+        onUpdate() {
+          el.textContent = String(Math.floor(this.targets()[0].v));
+        }
       });
     }
   });
-});
+}
 
 /* PANEL HOVER wiggle */
 document.querySelectorAll('.cs-panel').forEach(p=>{
@@ -1220,6 +1232,251 @@ document.querySelectorAll('.feat-sm').forEach(card=>{
 gsap.from('.speech-bubble-big',{
   scale:.9,opacity:0,duration:.6,ease:'back.out(1.4)',stagger:.15,
   scrollTrigger:{trigger:'.speech-grid',start:'top 80%'}
+});
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function initialsFor(name = '') {
+  return String(name)
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0].toUpperCase())
+    .join('') || 'SF';
+}
+
+function compactSkillLabel(name = '') {
+  const overrides = {
+    JavaScript: 'JS',
+    TypeScript: 'TS',
+    PostgreSQL: 'PG',
+    Kubernetes: 'K8s',
+    TensorFlow: 'Tensor',
+    GraphQL: 'GQL',
+    'Next.js': 'Next',
+    FastAPI: 'API',
+  };
+  if (overrides[name]) return overrides[name];
+
+  const clean = String(name).replace(/\.js$/i, '');
+  if (clean.length <= 8) return clean;
+
+  const parts = clean.split(/[\s/-]+/).filter(Boolean);
+  if (parts.length > 1) {
+    const acronym = parts.map(part => part[0].toUpperCase()).join('');
+    if (acronym.length <= 5) return acronym;
+  }
+
+  return clean.slice(0, 8);
+}
+
+function fontSizeForLabel(label) {
+  if (label.length <= 3) return 7.5;
+  if (label.length <= 5) return 7;
+  if (label.length <= 7) return 6.2;
+  return 5.5;
+}
+
+function renderFeaturedTree(tree, featuredProfile) {
+  const svg = document.getElementById('featuredTreeSvg');
+  if (!svg || !tree || !Array.isArray(tree.nodes) || tree.nodes.length === 0) return;
+
+  const slots = [
+    { x: 140, y: 30, r: 20 },
+    { x: 65, y: 85, r: 15 },
+    { x: 140, y: 92, r: 11 },
+    { x: 215, y: 85, r: 15 },
+    { x: 30, y: 148, r: 10 },
+    { x: 96, y: 148, r: 9 },
+    { x: 184, y: 148, r: 9 },
+    { x: 250, y: 148, r: 9 },
+  ];
+
+  const nodes = tree.nodes.slice(0, slots.length).map((node, index) => ({
+    ...node,
+    ...slots[index],
+  }));
+  const byId = new Map(nodes.map(node => [Number(node.id), node]));
+
+  let edges = Array.isArray(tree.edges)
+    ? tree.edges
+        .map(edge => ({
+          source: byId.get(Number(edge.source)),
+          target: byId.get(Number(edge.target)),
+        }))
+        .filter(edge => edge.source && edge.target)
+    : [];
+
+  if (!edges.length && nodes.length > 1) {
+    const fallbackPairs = [
+      [0, 1], [0, 2], [0, 3],
+      [1, 4], [1, 5], [3, 6], [3, 7],
+    ];
+    edges = fallbackPairs
+      .filter(([sourceIndex, targetIndex]) => nodes[sourceIndex] && nodes[targetIndex])
+      .map(([sourceIndex, targetIndex]) => ({
+        source: nodes[sourceIndex],
+        target: nodes[targetIndex],
+      }));
+  }
+
+  const root = nodes[0];
+  const rootVouches = root?.vouch_count ?? featuredProfile?.total_vouches ?? 0;
+  const lines = edges.map((edge, index) => {
+    const opacity = index < 3 ? '.15' : '.12';
+    return `<line x1="${edge.source.x}" y1="${edge.source.y}" x2="${edge.target.x}" y2="${edge.target.y}" stroke="#1A1A1A" stroke-width="1.5" stroke-opacity="${opacity}"/>`;
+  }).join('');
+
+  const circles = nodes.map((node, index) => {
+    const label = compactSkillLabel(node.name);
+    const fontSize = fontSizeForLabel(label);
+    const radius = node.r + Math.min(node.level, 5);
+    const pulse = index === 0
+      ? `<circle cx="${node.x}" cy="${node.y}" r="${radius + 6}" fill="${escapeHtml(node.color || '#E63B3B')}" opacity=".08">
+          <animate attributeName="r" values="${radius};${radius + 10};${radius}" dur="3s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values=".08;0;.08" dur="3s" repeatCount="indefinite"/>
+        </circle>`
+      : '';
+    const badge = index === 0
+      ? `<circle cx="${node.x + 18}" cy="${node.y - 17}" r="9" fill="#F5C842" stroke="#1A1A1A" stroke-width="1.5"/>
+         <text x="${node.x + 18}" y="${node.y - 13}" text-anchor="middle" fill="#1A1A1A" font-size="7.5" font-weight="800" font-family="Oswald">${Math.max(0, rootVouches)}</text>`
+      : '';
+    return `
+      ${pulse}
+      <circle cx="${node.x}" cy="${node.y}" r="${radius}" fill="${escapeHtml(node.color || '#E63B3B')}" stroke="#1A1A1A" stroke-width="${index === 0 ? 2 : 1.5}"/>
+      <text class="nl" x="${node.x}" y="${node.y}" font-size="${fontSize}">${escapeHtml(label)}</text>
+      ${badge}
+    `;
+  }).join('');
+
+  svg.innerHTML = `${lines}${circles}`;
+}
+
+function renderTestimonials(items) {
+  const grid = document.getElementById('testimonialsGrid');
+  if (!grid || !Array.isArray(items) || !items.length) return;
+
+  const cardClasses = ['sl d1', 'sr d2', 'sl d3'];
+  grid.innerHTML = items.slice(0, 3).map((item, index) => `
+    <div class="speech-card ${cardClasses[index % cardClasses.length]}">
+      <div class="speech-bubble-big">
+        <p class="sb-text">${escapeHtml(item.quote)}</p>
+      </div>
+      <div class="speaker">
+        <div class="sp-av" style="background:${escapeHtml(item.avatar_color || '#E63B3B')};">${escapeHtml(item.avatar_initials || initialsFor(item.display_name))}</div>
+        <div>
+          <span class="sp-name">${escapeHtml(String(item.display_name || '').toUpperCase())}</span>
+          <span class="sp-role">${escapeHtml(item.role_title || 'SkillForge member')}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  grid.querySelectorAll('.speech-bubble-big').forEach(el => {
+    el.addEventListener('mouseenter', () => document.body.classList.add('hov'));
+    el.addEventListener('mouseleave', () => document.body.classList.remove('hov'));
+  });
+
+  gsap.from(grid.querySelectorAll('.speech-bubble-big'), {
+    scale: .9,
+    opacity: 0,
+    duration: .6,
+    ease: 'back.out(1.4)',
+    stagger: .15,
+    scrollTrigger: { trigger: '.speech-grid', start: 'top 80%' }
+  });
+}
+
+function renderTicker(items) {
+  const track = document.getElementById('activityTicker');
+  if (!track || !Array.isArray(items) || !items.length) return;
+
+  const rendered = [...items, ...items].map(item => `
+    <div class="ti">
+      <span class="ti-who">${escapeHtml(String(item.who || 'SkillForge').toUpperCase())}</span>
+      <span class="ti-dot">▶</span>
+      <span class="ti-what">${escapeHtml(item.what || 'New activity')}</span>
+    </div>
+  `).join('');
+
+  track.innerHTML = rendered;
+}
+
+function renderLandingStats(stats) {
+  const values = [
+    ['s1', 's1Label', stats?.trees, 'trees'],
+    ['s2', 's2Label', stats?.vouches, 'vouches'],
+    ['s3', 's3Label', stats?.skills, 'skills'],
+  ];
+
+  values.forEach(([valueId, labelId, value, label]) => {
+    const labelEl = document.getElementById(labelId);
+    if (labelEl) labelEl.textContent = label;
+    animateCount(valueId, value || 0);
+  });
+}
+
+function renderFeaturedProfile(featuredProfile, tree) {
+  if (!featuredProfile) return;
+
+  document.getElementById('featuredImpact').textContent = `LEVEL ${featuredProfile.level || 1}!`;
+  document.getElementById('featuredNamePlate').textContent = `▶ ${featuredProfile.display_name || 'SkillForge'} ◀`;
+  document.getElementById('featuredAvatar').textContent = featuredProfile.avatar_initials || initialsFor(featuredProfile.display_name);
+  document.getElementById('featuredName').textContent = featuredProfile.display_name || 'SkillForge member';
+  document.getElementById('featuredRole').textContent = featuredProfile.role_title || 'Developer';
+  document.getElementById('featuredLevel').textContent = `LVL ${featuredProfile.level || 1}`;
+
+  const recentVouches = featuredProfile.recent_vouches || 0;
+  const totalVouches = featuredProfile.total_vouches || 0;
+  document.getElementById('featuredThought').textContent = recentVouches > 0
+    ? `${recentVouches} vouches in the last 30 days... 👀`
+    : `${totalVouches} total vouches so far... 👀`;
+
+  renderFeaturedTree(tree, featuredProfile);
+}
+
+async function hydrateLandingContent() {
+  if (typeof API === 'undefined' || typeof API.getLandingContent !== 'function') return;
+
+  const content = await API.getLandingContent();
+  renderLandingStats(content.stats);
+  renderFeaturedProfile(content.featured_profile, content.featured_tree);
+  renderTicker(content.ticker);
+  renderTestimonials(content.testimonials);
+}
+
+function goToApp() {
+  const userId = localStorage.getItem('sf_user_id');
+  if (typeof API !== 'undefined' && API.isLoggedIn() && userId) {
+    window.location.href = `profile.html?id=${userId}`;
+    return;
+  }
+  if (typeof AuthModal !== 'undefined') {
+    AuthModal.show();
+  }
+}
+
+document.getElementById('navStartBtn').addEventListener('click', goToApp);
+document.getElementById('heroBuildBtn').addEventListener('click', goToApp);
+document.getElementById('ctaBuildBtn').addEventListener('click', goToApp);
+document.getElementById('ctaExamplesBtn').addEventListener('click', () => {
+  window.location.href = 'Discover.html';
+});
+
+document.addEventListener('sf:login', e => {
+  localStorage.setItem('sf_user_id', e.detail.id);
+  window.location.href = `profile.html?id=${e.detail.id}`;
+});
+
+hydrateLandingContent().catch(err => {
+  console.warn('Could not load landing content:', err.message);
 });
 </script>
 </body>

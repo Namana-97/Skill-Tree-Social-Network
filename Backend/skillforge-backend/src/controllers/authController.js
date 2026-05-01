@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const pool   = require('../db/pool');
+const { getJwtSecret } = require('../utils/jwt');
 
 // ── Validation rules ──────────────────────────────────
 const registerRules = [
@@ -105,7 +106,7 @@ async function me(req, res) {
 function signToken(user) {
   return jwt.sign(
     { id: user.id, username: user.username, email: user.email },
-    process.env.JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 }

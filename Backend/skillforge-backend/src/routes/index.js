@@ -2,7 +2,9 @@ const express = require('express');
 const router  = express.Router();
 
 const auth      = require('../middleware/auth');
+const optionalAuth = require('../middleware/optionalAuth');
 const authCtrl  = require('../controllers/authController');
+const siteContentCtrl = require('../controllers/siteContentController');
 const skillCtrl = require('../controllers/skillsController');
 const vouchCtrl = require('../controllers/vouchController');
 const matchCtrl = require('../controllers/matchController');
@@ -13,8 +15,9 @@ router.post('/auth/login',    authCtrl.loginRules,    authCtrl.login);
 router.get ('/auth/me',       auth,                   authCtrl.me);
 
 // ── PROFILES & DISCOVER ───────────────────────────────
+router.get('/site-content/landing',  siteContentCtrl.getLandingContent);
 router.get('/users/:userId/profile', matchCtrl.getProfile);
-router.get('/discover',              matchCtrl.discover);
+router.get('/discover',              optionalAuth, matchCtrl.discover);
 
 // ── SKILLS ────────────────────────────────────────────
 router.get   ('/users/:userId/skills',   skillCtrl.getSkillTree);

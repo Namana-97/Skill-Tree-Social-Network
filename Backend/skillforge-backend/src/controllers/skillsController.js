@@ -1,16 +1,19 @@
 const { body, validationResult } = require('express-validator');
 const pool = require('../db/pool');
+const { applyXpDelta } = require('../utils/userProgress');
 
 // ── Validation rules ──────────────────────────────────
 const addSkillRules = [
   body('name').trim().notEmpty().isLength({ max: 80 }).withMessage('Skill name required (max 80 chars).'),
   body('level').isInt({ min: 1, max: 5 }).withMessage('Level must be between 1 and 5.'),
   body('color').optional().matches(/^#[0-9A-Fa-f]{6}$/).withMessage('Color must be a valid hex code.'),
+  body('proof_url').optional({ values: 'falsy' }).isURL({ require_protocol: true }).withMessage('Proof URL must be a valid URL.'),
 ];
 
 const updateSkillRules = [
   body('level').optional().isInt({ min: 1, max: 5 }).withMessage('Level must be between 1 and 5.'),
   body('color').optional().matches(/^#[0-9A-Fa-f]{6}$/).withMessage('Color must be a valid hex code.'),
+  body('proof_url').optional({ values: 'falsy' }).isURL({ require_protocol: true }).withMessage('Proof URL must be a valid URL.'),
 ];
 
 // ── GET /users/:userId/skills ─────────────────────────
@@ -52,27 +55,30 @@ async function addSkill(req, res) {
 
   const { name, level, color, proof_url } = req.body;
   const userId = req.user.id;
+  const client = await pool.connect();
 
   try {
-    const { rows } = await pool.query(
+    await client.query('BEGIN');
+    const { rows } = await client.query(
       `INSERT INTO skills (user_id, name, level, color, proof_url)
        VALUES ($1,$2,$3,$4,$5) RETURNING *`,
       [userId, name.trim(), level, color || '#E63B3B', proof_url || null]
     );
 
-    await pool.query(
-      'UPDATE users SET xp = xp + $1 WHERE id = $2',
-      [level * 20, userId]
-    );
+    await applyXpDelta(client, userId, level * 20);
 
+    await client.query('COMMIT');
     recomputeMatches(userId).catch(console.error);
     res.status(201).json(rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     if (err.code === '23505') {
       return res.status(409).json({ error: 'You already have this skill. Update it instead.' });
     }
     console.error(err);
     res.status(500).json({ error: 'Could not add skill.' });
+  } finally {
+    client.release();
   }
 }
 
@@ -88,36 +94,42 @@ async function updateSkill(req, res) {
 
   const { level, color, proof_url } = req.body;
   const userId = req.user.id;
+  const client = await pool.connect();
 
   try {
-    const own = await pool.query(
+    await client.query('BEGIN');
+
+    const own = await client.query(
       'SELECT id, level, color, proof_url FROM skills WHERE id=$1 AND user_id=$2',
       [skillId, userId]
     );
     if (own.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(403).json({ error: 'Not your skill.' });
     }
 
     const old = own.rows[0];
     const newLevel = level ?? old.level;
-    const { rows } = await pool.query(
+    const { rows } = await client.query(
       `UPDATE skills SET level=$1, color=$2, proof_url=$3, updated_at=NOW()
        WHERE id=$4 RETURNING *`,
       [newLevel, color ?? old.color, proof_url ?? old.proof_url, skillId]
     );
 
-    if (newLevel > old.level) {
-      await pool.query(
-        'UPDATE users SET xp=xp+$1 WHERE id=$2',
-        [(newLevel - old.level) * 20, userId]
-      );
+    const xpDelta = (newLevel - old.level) * 20;
+    if (xpDelta !== 0) {
+      await applyXpDelta(client, userId, xpDelta);
     }
 
+    await client.query('COMMIT');
     recomputeMatches(userId).catch(console.error);
     res.json(rows[0]);
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ error: 'Could not update skill.' });
+  } finally {
+    client.release();
   }
 }
 
@@ -125,17 +137,36 @@ async function updateSkill(req, res) {
 async function deleteSkill(req, res) {
   const skillId = parseInt(req.params.skillId);
   if (isNaN(skillId)) return res.status(400).json({ error: 'Invalid skill ID.' });
+  const client = await pool.connect();
 
   try {
-    const result = await pool.query(
+    await client.query('BEGIN');
+
+    const own = await client.query(
+      'SELECT level FROM skills WHERE id=$1 AND user_id=$2',
+      [skillId, req.user.id]
+    );
+    if (own.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Not your skill.' });
+    }
+
+    const result = await client.query(
       'DELETE FROM skills WHERE id=$1 AND user_id=$2 RETURNING id',
       [skillId, req.user.id]
     );
-    if (result.rowCount === 0) return res.status(403).json({ error: 'Not your skill.' });
+
+    await applyXpDelta(client, req.user.id, -own.rows[0].level * 20);
+    await client.query('COMMIT');
+
+    recomputeMatches(req.user.id).catch(console.error);
     res.json({ deleted: skillId });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ error: 'Could not delete skill.' });
+  } finally {
+    client.release();
   }
 }
 
@@ -191,35 +222,37 @@ async function deleteEdge(req, res) {
 
 // ── INTERNAL: recompute complement scores ─────────────
 async function recomputeMatches(userId) {
-  const mine = await pool.query('SELECT name, level FROM skills WHERE user_id=$1', [userId]);
-  const mySkills = mine.rows;
-  const others = await pool.query(
-    'SELECT s.user_id, s.name, s.level FROM skills s WHERE s.user_id != $1',
-    [userId]
-  );
+  const [mine, otherUsers, otherSkills] = await Promise.all([
+    pool.query('SELECT name FROM skills WHERE user_id=$1', [userId]),
+    pool.query('SELECT id FROM users WHERE id != $1', [userId]),
+    pool.query('SELECT user_id, name FROM skills WHERE user_id != $1', [userId]),
+  ]);
 
-  const byUser = {};
-  others.rows.forEach(r => {
-    if (!byUser[r.user_id]) byUser[r.user_id] = [];
-    byUser[r.user_id].push(r);
+  const myNames = new Set(mine.rows.map(s => s.name));
+  const myNamesArr = [...myNames];
+
+  const byUser = new Map(otherUsers.rows.map(row => [row.id, []]));
+  otherSkills.rows.forEach(row => {
+    if (!byUser.has(row.user_id)) byUser.set(row.user_id, []);
+    byUser.get(row.user_id).push(row.name);
   });
 
-  const myNames   = new Set(mySkills.map(s => s.name));
-  const myNames_a = [...myNames];
+  await pool.query('DELETE FROM matches WHERE user_a_id=$1 OR user_b_id=$1', [userId]);
 
-  for (const [otherId, theirSkills] of Object.entries(byUser)) {
-    const theirNames   = new Set(theirSkills.map(s => s.name));
-    const theirNames_a = [...theirNames];
-    const theyFill = theirNames_a.filter(n => !myNames.has(n)).length;
-    const youFill  = myNames_a.filter(n => !theirNames.has(n)).length;
-    const total    = new Set([...myNames_a, ...theirNames_a]).size;
-    const score    = total > 0 ? Math.round(((theyFill + youFill) / total) * 100) : 0;
+  for (const [otherId, names] of byUser.entries()) {
+    const theirNames = new Set(names);
+    const theirNamesArr = [...theirNames];
+    const theyFill = theirNamesArr.filter(name => !myNames.has(name)).length;
+    const youFill = myNamesArr.filter(name => !theirNames.has(name)).length;
+    const total = new Set([...myNamesArr, ...theirNamesArr]).size;
+    const score = total > 0 ? Math.round(((theyFill + youFill) / total) * 100) : 0;
 
     await pool.query(
-      `INSERT INTO matches (user_a_id, user_b_id, score)
-       VALUES ($1,$2,$3)
-       ON CONFLICT (user_a_id, user_b_id) DO UPDATE SET score=$3, computed_at=NOW()`,
-      [userId, parseInt(otherId), score]
+      `INSERT INTO matches (user_a_id, user_b_id, score, computed_at)
+       VALUES ($1,$2,$3,NOW()), ($2,$1,$3,NOW())
+       ON CONFLICT (user_a_id, user_b_id)
+       DO UPDATE SET score = EXCLUDED.score, computed_at = NOW()`,
+      [userId, otherId, score]
     );
   }
 }

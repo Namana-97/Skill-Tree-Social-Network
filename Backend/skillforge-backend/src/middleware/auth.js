@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { getJwtSecret } = require('../utils/jwt');
 
 function authMiddleware(req, res, next) {
   const header = req.headers['authorization'];
@@ -10,8 +11,7 @@ function authMiddleware(req, res, next) {
   const token = header.split(' ')[1];
 
   try {
-    // Ensure your .env has JWT_SECRET defined
-    const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_key');
+    const payload = jwt.verify(token, getJwtSecret());
     req.user = payload; // This passes { id, username, email } to the controllers
     next();
   } catch (err) {

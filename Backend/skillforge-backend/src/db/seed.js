@@ -25,13 +25,31 @@ async function seed() {
         ('yuki',    'yuki@example.com',   $1, 'Yuki Sato',    'Frontend Specialist',   'Pixel-perfect or Monday.',       'YS', '#E8849A', 2900, 29),
         ('sofia',   'sofia@example.com',  $1, 'Sofia R.',     'Frontend Engineer',     'UIs that feel something.',       'SR', '#C42B8A', 2700, 27),
         ('chen',    'chen@example.com',   $1, 'Chen Wei',     'Backend Engineer',      'Memory safety is not optional.', 'CW', '#2A9B7A', 3500, 35)
-      ON CONFLICT (username) DO NOTHING
+      ON CONFLICT (username) DO UPDATE
+      SET email = EXCLUDED.email,
+          password_hash = EXCLUDED.password_hash,
+          display_name = EXCLUDED.display_name,
+          role_title = EXCLUDED.role_title,
+          bio = EXCLUDED.bio,
+          avatar_initials = EXCLUDED.avatar_initials,
+          avatar_color = EXCLUDED.avatar_color,
+          xp = EXCLUDED.xp,
+          level = EXCLUDED.level
       RETURNING id, username
     `, [hash]);
 
     const uid = {};
     users.forEach(u => uid[u.username] = u.id);
     console.log('  ✓ Users inserted:', Object.keys(uid).join(', '));
+
+    await client.query(`
+      INSERT INTO site_settings (key, value_text)
+      VALUES ('landing_featured_user_id', $1)
+      ON CONFLICT (key) DO UPDATE
+      SET value_text = EXCLUDED.value_text,
+          updated_at = NOW()
+    `, [String(uid.aryan || '')]);
+    console.log('  ✓ Landing featured user configured');
 
     // ── 2. SKILLS ─────────────────────────────────
     const skillDefs = [
@@ -122,7 +140,61 @@ async function seed() {
     }
     console.log(`  ✓ ${vouchData.length} vouches inserted`);
 
-    // ── 5. PRE-COMPUTE MATCHES — ALL user pairs ───
+    // ── 5. TESTIMONIALS ───────────────────────────
+    const testimonials = [
+      {
+        slug: 'sofia-story',
+        display_name: 'Sofia R.',
+        role_title: 'Frontend Engineer',
+        quote: "Finally a way to show my skills that doesn't look like every other LinkedIn profile. My tree got me three interview requests in a single month.",
+        avatar_initials: 'SR',
+        avatar_color: '#C42B8A',
+        sort_order: 1,
+      },
+      {
+        slug: 'marcus-story',
+        display_name: 'Marcus K.',
+        role_title: 'ML Researcher & Founder',
+        quote: "The complement matching is genuinely magical. Found my co-founder through SkillForge — his backend depth fills exactly what I was missing.",
+        avatar_initials: 'MK',
+        avatar_color: '#5C3FB0',
+        sort_order: 2,
+      },
+      {
+        slug: 'jamie-story',
+        display_name: 'Jamie P.',
+        role_title: 'CTO, Early-Stage Startup',
+        quote: "Instead of posting job descriptions, I shared our skill gaps. The right people found us in 48 hours. I haven't posted a listing since.",
+        avatar_initials: 'JP',
+        avatar_color: '#1A7FC2',
+        sort_order: 3,
+      },
+    ];
+
+    for (const testimonial of testimonials) {
+      await client.query(`
+        INSERT INTO testimonials (slug, display_name, role_title, quote, avatar_initials, avatar_color, sort_order)
+        VALUES ($1,$2,$3,$4,$5,$6,$7)
+        ON CONFLICT (slug) DO UPDATE
+        SET display_name = EXCLUDED.display_name,
+            role_title = EXCLUDED.role_title,
+            quote = EXCLUDED.quote,
+            avatar_initials = EXCLUDED.avatar_initials,
+            avatar_color = EXCLUDED.avatar_color,
+            sort_order = EXCLUDED.sort_order
+      `, [
+        testimonial.slug,
+        testimonial.display_name,
+        testimonial.role_title,
+        testimonial.quote,
+        testimonial.avatar_initials,
+        testimonial.avatar_color,
+        testimonial.sort_order,
+      ]);
+    }
+    console.log(`  ✓ ${testimonials.length} testimonials inserted`);
+
+    // ── 6. PRE-COMPUTE MATCHES — ALL user pairs ───
     // FIX: original only computed for Aryan — now computes for everyone
     const allUsernames = Object.keys(uid);
     let matchCount = 0;

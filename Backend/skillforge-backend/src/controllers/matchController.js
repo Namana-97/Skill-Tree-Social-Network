@@ -3,12 +3,17 @@ const pool = require('../db/pool');
 // ── GET /match/:userId ────────────────────────────────
 async function getMatches(req, res) {
   const userId = parseInt(req.params.userId);
+  if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID.' });
+  if (userId !== req.user.id) {
+    return res.status(403).json({ error: 'You can only view your own matches.' });
+  }
+
   const limit  = parseInt(req.query.limit) || 10;
 
   try {
     const { rows } = await pool.query(
       `SELECT
-         m.score,
+         m.score, m.computed_at,
          u.id, u.display_name, u.role_title, u.avatar_initials, u.avatar_color, u.level,
          COALESCE(
            json_agg(json_build_object('name',s.name,'level',s.level,'color',s.color))
@@ -19,7 +24,7 @@ async function getMatches(req, res) {
        JOIN users u ON u.id = m.user_b_id
        LEFT JOIN skills s ON s.user_id = u.id
        WHERE m.user_a_id = $1
-       GROUP BY m.score, u.id
+       GROUP BY m.id, m.score, m.computed_at, u.id
        ORDER BY m.score DESC
        LIMIT $2`,
       [userId, limit]
@@ -50,15 +55,15 @@ async function getMatches(req, res) {
 
 // ── GET /discover ─────────────────────────────────────
 async function discover(req, res) {
-  const { skill, role, sort = 'level', page = 1, limit = 20 } = req.query;
-  const offset   = (parseInt(page) - 1) * parseInt(limit);
+  const { q, skill, role, sort = 'level', page = 1, limit = 20 } = req.query;
+  const safePage = Math.max(1, parseInt(page) || 1);
+  const safeLimit = Math.min(50, Math.max(1, parseInt(limit) || 20));
+  const offset   = (safePage - 1) * safeLimit;
   const viewerId = req.user?.id ? parseInt(req.user.id) : null;
 
   try {
-    // Build params array — viewerId goes in as a proper parameter
     const params = [];
 
-    // Base SELECT — conditionally include match_score
     let selectClause = `
       SELECT
         u.id, u.display_name, u.username, u.role_title,
@@ -70,7 +75,6 @@ async function discover(req, res) {
         (SELECT COUNT(*) FROM vouches WHERE recipient_id=u.id)::int AS vouch_count
     `;
 
-    // ✅ Fixed: viewerId as parameterized value, not string interpolation
     if (viewerId) {
       params.push(viewerId);
       selectClause += `,
@@ -81,6 +85,21 @@ async function discover(req, res) {
     if (viewerId) {
       params.push(viewerId);
       whereClause += ` AND u.id != $${params.length}`;
+    }
+
+    if (q) {
+      params.push(`%${q.toLowerCase()}%`);
+      whereClause += ` AND (
+        LOWER(u.display_name) LIKE $${params.length}
+        OR LOWER(u.username) LIKE $${params.length}
+        OR LOWER(COALESCE(u.role_title, '')) LIKE $${params.length}
+        OR EXISTS (
+          SELECT 1
+          FROM skills qs
+          WHERE qs.user_id = u.id
+            AND LOWER(qs.name) LIKE $${params.length}
+        )
+      )`;
     }
 
     if (skill) {
@@ -100,7 +119,7 @@ async function discover(req, res) {
     };
     const orderClause = orderMap[sort] || orderMap.level;
 
-    params.push(parseInt(limit), offset);
+    params.push(safeLimit, offset);
     const limitClause = `LIMIT $${params.length - 1} OFFSET $${params.length}`;
 
     const fullQuery = `

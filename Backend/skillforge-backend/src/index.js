@@ -6,6 +6,8 @@ const routes    = require('./routes');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '127.0.0.1';
+const isProd = process.env.NODE_ENV === 'production';
 
 // ── CORS ──────────────────────────────────────────────
 // The logic here is preserved, but expanded to handle local dev environments
@@ -14,9 +16,19 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
 
 app.use(cors({
   origin: (origin, cb) => {
-    // FIX: Explicitly allow localhost/127.0.0.1 for local testing
-    if (!origin || allowedOrigins.includes(origin) || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    if (!origin || allowedOrigins.includes(origin)) {
       return cb(null, true);
+    }
+    if (!isProd && origin === 'null') {
+      return cb(null, true);
+    }
+    try {
+      const { hostname } = new URL(origin);
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return cb(null, true);
+      }
+    } catch {
+      return cb(null, false);
     }
     return cb(null, false);
   },
@@ -61,8 +73,8 @@ app.use((err, req, res, next) => {
 });
 
 // ── START ─────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n⬡  SkillForge API running on http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`\n⬡  SkillForge API running on http://${HOST}:${PORT}`);
   console.log(`   Environment : ${process.env.NODE_ENV || 'development'}`);
   console.log(`   DB          : ${process.env.DB_NAME}@${process.env.DB_HOST}\n`);
 });

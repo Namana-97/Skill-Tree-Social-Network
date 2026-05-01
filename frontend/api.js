@@ -3,7 +3,10 @@
  * Base API: http://localhost:3001/api
  */
 const API = (() => {
-  const BASE = 'http://localhost:3001/api';
+  const configuredBase = window.API_BASE || localStorage.getItem('sf_api_base');
+  const inferredHost = window.location.hostname || 'localhost';
+  const defaultBase = `http://${inferredHost}:3001/api`;
+  const BASE = configuredBase || defaultBase;
 
   function getToken() {
     return localStorage.getItem('sf_token');
@@ -22,20 +25,30 @@ const API = (() => {
   }
 
   async function req(method, path, body = null, auth = false) {
-    const headers = {
-      'Content-Type': 'application/json',
-    };
+    const headers = {};
+    const hasBody = body !== null && body !== undefined;
 
     const token = getToken();
     if (auth || token) {
       if (token) headers.Authorization = `Bearer ${token}`;
     }
 
-    const res = await fetch(`${BASE}${path}`, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : null,
-    });
+    if (hasBody) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    let res;
+    try {
+      res = await fetch(`${BASE}${path}`, {
+        method,
+        headers,
+        body: hasBody ? JSON.stringify(body) : null,
+      });
+    } catch (error) {
+      throw new Error(
+        `Could not reach the API at ${BASE}. Start the backend on port 3001 and load the frontend from localhost or 127.0.0.1.`
+      );
+    }
 
     let data = {};
     try {
@@ -89,6 +102,10 @@ const API = (() => {
     return req('GET', `/users/${userId}/profile`, null, isLoggedIn());
   }
 
+  async function getLandingContent() {
+    return req('GET', '/site-content/landing');
+  }
+
   async function getSkillTree(userId) {
     return req('GET', `/users/${userId}/skills`, null, isLoggedIn());
   }
@@ -105,9 +122,26 @@ const API = (() => {
     return req('POST', '/vouches', { skill_id, message }, true);
   }
 
-  async function discover({ skill, role, sort = 'match', page = 1, limit = 20 } = {}) {
+  async function updateSkill(skillId, skillData) {
+    return req('PUT', `/skills/${skillId}`, skillData, true);
+  }
+
+  async function deleteSkill(skillId) {
+    return req('DELETE', `/skills/${skillId}`, null, true);
+  }
+
+  async function addEdge(source_skill_id, target_skill_id) {
+    return req('POST', '/skills/edges', { source_skill_id, target_skill_id }, true);
+  }
+
+  async function deleteEdge(edgeId) {
+    return req('DELETE', `/skills/edges/${edgeId}`, null, true);
+  }
+
+  async function discover({ q, skill, role, sort = 'match', page = 1, limit = 20 } = {}) {
     const params = new URLSearchParams();
 
+    if (q) params.set('q', q);
     if (skill) params.set('skill', skill);
     if (role) params.set('role', role);
     params.set('sort', sort);
@@ -128,9 +162,14 @@ const API = (() => {
     logout,
     isLoggedIn,
     getToken,
+    getLandingContent,
     getProfile,
     getSkillTree,
     addSkill,
+    updateSkill,
+    deleteSkill,
+    addEdge,
+    deleteEdge,
     getVouches,
     createVouch,
     discover,

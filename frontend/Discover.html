@@ -373,9 +373,9 @@ nav { background:var(--ink); display:flex; justify-content:space-between; align-
 <nav>
   <a href="LandingPage.html" class="logo">⬡ SkillForge</a>
   <div class="nav-r">
-    <a href="profile.html">Profile</a>
+    <a href="profile.html" id="navProfileLink">Profile</a>
     <a href="#" class="active">Discover</a>
-    <a href="#">Matches</a>
+    <a href="#matchList">Matches</a>
     <button class="nav-btn" id="navAuthBtn">LOGIN</button>
   </div>
 </nav>
@@ -433,7 +433,7 @@ nav { background:var(--ink); display:flex; justify-content:space-between; align-
     <button class="stag" data-skill="JavaScript">JavaScript</button>
     <button class="stag" data-skill="React">React</button>
     <button class="stag" data-skill="Python">Python</button>
-    <button class="stag" data-skill="Node.js">Node.js</button>
+    <button class="stag" data-skill="Node">Node.js</button>
     <button class="stag" data-skill="ML">ML</button>
     <button class="stag" data-skill="DevOps">DevOps</button>
     <button class="stag" data-skill="SQL">SQL</button>
@@ -543,6 +543,7 @@ const state = {
   limit: 20,
   loading: false,
   hasMore: true,
+  apiError: null,
 };
 
 const FALLBACK_DEVS = [
@@ -600,6 +601,7 @@ function setNavLabel() {
   $('navAuthBtn').textContent = state.me?.display_name
     ? state.me.display_name.split(' ')[0].toUpperCase()
     : 'LOGIN';
+  $('navProfileLink').href = state.me?.id ? `profile.html?id=${state.me.id}` : 'profile.html';
 }
 
 function setAuthButtonBehavior() {
@@ -650,6 +652,19 @@ function flashSFX(text, color = '#F5C842') {
   gsap.to(el, { scale: 1.3, opacity: 0, duration: .4, delay: .4, ease: 'power2.in', onComplete: () => el.remove() });
 }
 
+function updateHeroStats() {
+  $('ds1').textContent = String(state.allDevelopers.length);
+  $('ds2').textContent = String(state.allDevelopers.reduce((sum, dev) => sum + dev.skills.length, 0));
+  $('ds3').textContent = String(state.matches.length);
+}
+
+function setNoResultsMessage(title, subtitle) {
+  $('noResults').style.display = 'block';
+  $('resultCount').textContent = '0';
+  $('noResults').querySelector('.sfx').textContent = title;
+  $('noResults').querySelector('p').innerHTML = subtitle;
+}
+
 function getMatchDetails(id) {
   return state.matchById.get(Number(id)) || null;
 }
@@ -660,6 +675,8 @@ function normalizeDevFromApi(d) {
     level: s.level,
     color: s.color || '#1A7FC2'
   })) : [];
+  const rawMatch = d.match_score ?? d.score;
+  const hasMatch = rawMatch !== null && rawMatch !== undefined;
   return {
     id: d.id,
     name: d.display_name || d.name || 'Unknown',
@@ -667,11 +684,11 @@ function normalizeDevFromApi(d) {
     role: d.role_title || 'Developer',
     level: d.level || 1,
     avBg: d.avatar_color || '#E63B3B',
-    match: Math.round(d.match_score ?? d.score ?? 0),
+    match: hasMatch ? Math.round(rawMatch) : null,
     vouches: d.vouch_count || 0,
     skills,
     links: skills.length > 1 ? skills.slice(0, -1).map((s, idx) => ({ s: s.id, t: skills[idx + 1].id })) : [],
-    gaps: (d.fills_your_gaps || d.their_skills || []).map(s => s.name).slice(0, 3),
+    gaps: (d.fills_your_gaps || []).map(s => s.name).slice(0, 3),
     theyNeed: (d.you_fill_theirs || []).map(s => s.name).slice(0, 3),
     quote: `"${d.role_title || 'Developer'} · Level ${d.level || 1}"`,
   };
@@ -700,7 +717,10 @@ function refreshMatchMap() {
 
 function sortDevelopers(list) {
   return [...list].sort((a, b) => {
-    if (state.activeSortType === 'match') return b.match - a.match;
+    if (state.activeSortType === 'match') {
+      if (!state.me) return b.level - a.level;
+      return (b.match ?? -1) - (a.match ?? -1);
+    }
     if (state.activeSortType === 'level') return b.level - a.level;
     if (state.activeSortType === 'vouches') return b.vouches - a.vouches;
     return 0;
@@ -713,9 +733,9 @@ function passesActiveFilters(dev) {
   const skillsOk = state.activeSkillFilter.length === 0 || state.activeSkillFilter.every(f => dev.skills.some(s => s.id.toLowerCase().includes(f.toLowerCase())));
 
   let typeOk = true;
-  if (state.activeFilterType === 'complement') typeOk = dev.match >= 70;
-  if (state.activeFilterType === 'mentor') typeOk = state.me ? dev.level >= state.me.level + 3 : dev.match >= 80;
-  if (state.activeFilterType === 'cofounder') typeOk = dev.match >= 55 && dev.match <= 90;
+  if (state.activeFilterType === 'complement') typeOk = state.me ? (dev.match ?? -1) >= 70 : true;
+  if (state.activeFilterType === 'mentor') typeOk = state.me ? dev.level >= state.me.level + 3 : dev.level >= 3;
+  if (state.activeFilterType === 'cofounder') typeOk = state.me ? ((dev.match ?? -1) >= 55 && (dev.match ?? -1) <= 90) : dev.level >= 2;
 
   return textOk && skillsOk && typeOk;
 }
@@ -793,6 +813,17 @@ function drawOverlap(dev) {
   svg.selectAll('*').remove();
   const W = $('overlapSvg').clientWidth || 320;
   const H = 180;
+  if (!state.mySkills.length) {
+    svg.append('text')
+      .attr('x', W / 2)
+      .attr('y', H / 2)
+      .attr('text-anchor', 'middle')
+      .attr('fill', 'rgba(245,240,232,.35)')
+      .attr('font-family', 'Permanent Marker,cursive')
+      .attr('font-size', '12')
+      .text(state.me ? 'Add skills to compare against this profile.' : 'Log in to compare your skills.');
+    return;
+  }
   const myIds = state.mySkills.map(s => s.id);
   const theirIds = dev.skills.map(s => s.id);
   const shared = myIds.filter(s => theirIds.includes(s));
@@ -829,12 +860,12 @@ function drawOverlap(dev) {
 function drawGapAnalysis(dev) {
   const rows = $('gaRows');
   rows.innerHTML = '';
+  if (!state.mySkills.length) {
+    rows.innerHTML = `<div style="font-family:'Permanent Marker',cursive;font-size:.78rem;color:rgba(245,240,232,.35);text-align:center;padding:1rem 0;">${state.me ? 'Add skills to unlock gap analysis.' : 'Log in to unlock gap analysis.'}</div>`;
+    return;
+  }
   const myIds = state.mySkills.map(s => s.id);
   const theirIds = dev.skills.map(s => s.id);
-
-  const details = getMatchDetails(dev.id);
-  const fillsYourGaps = details?.fills_your_gaps?.length ? details.fills_your_gaps.map(s => s.name) : dev.gaps || [];
-  const youFillTheirs = details?.you_fill_theirs?.length ? details.you_fill_theirs.map(s => s.name) : dev.theyNeed || [];
 
   (dev.skills || []).forEach(s => {
     if (!myIds.includes(s.id)) rows.appendChild(makeGaRow(s.id, s.level / 5, s.color, 'they', 'FILLS YOUR GAP'));
@@ -862,16 +893,24 @@ function drawGapAnalysis(dev) {
 function renderMatchList() {
   const list = $('matchList');
   list.innerHTML = '';
-  const source = state.matches.length ? state.matches : state.filteredDevs.slice().sort((a, b) => b.match - a.match).slice(0, 5);
+  const source = state.matches.length
+    ? state.matches
+    : state.filteredDevs.slice().sort((a, b) => (b.match ?? -1) - (a.match ?? -1) || b.level - a.level).slice(0, 5);
+
+  if (!source.length) {
+    list.innerHTML = '<div style="font-family:\'Permanent Marker\',cursive;font-size:.72rem;color:rgba(245,240,232,.35);padding:.6rem 0;">No matches to show yet.</div>';
+    return;
+  }
+
   source.slice(0, 5).forEach(dev => {
     const div = document.createElement('div');
     div.className = 'ml-item' + (dev.id === state.activeDevId ? ' active-item' : '');
     div.dataset.id = dev.id;
-    const pctColor = dev.match >= 85 ? '#2A9B7A' : dev.match >= 70 ? '#F5C842' : 'rgba(245,240,232,.4)';
+    const pctColor = dev.match === null ? 'rgba(245,240,232,.4)' : dev.match >= 85 ? '#2A9B7A' : dev.match >= 70 ? '#F5C842' : 'rgba(245,240,232,.4)';
     div.innerHTML = `
       <div class="ml-av" style="background:${dev.avBg}">${dev.initials}</div>
       <div style="flex:1"><div class="ml-name">${escapeHtml(dev.name)}</div><div class="ml-role">${escapeHtml(dev.role)}</div></div>
-      <div class="ml-pct" style="color:${pctColor}">${dev.match}%</div>
+      <div class="ml-pct" style="color:${pctColor}">${dev.match === null ? '--' : `${dev.match}%`}</div>
     `;
     div.addEventListener('click', () => { selectDev(dev); scrollToCard(dev.id); });
     div.addEventListener('mouseenter', () => document.body.classList.add('hov'));
@@ -891,8 +930,10 @@ function selectDev(dev) {
 
   const details = getMatchDetails(dev.id);
   const pct = details?.score ?? dev.match;
-  $('amPct').textContent = `${pct}%`;
-  $('amLabel').textContent = `COMPLEMENT MATCH WITH ${dev.name.toUpperCase()}`;
+  $('amPct').textContent = pct === null || pct === undefined ? '--' : `${pct}%`;
+  $('amLabel').textContent = pct === null || pct === undefined
+    ? state.me ? `PROFILE ANALYSIS FOR ${dev.name.toUpperCase()}` : 'LOGIN TO UNLOCK MATCH ANALYSIS'
+    : `COMPLEMENT MATCH WITH ${dev.name.toUpperCase()}`;
   $('amQuote').textContent = details ? `"${dev.role} · Level ${dev.level}"` : dev.quote;
 
   gsap.from('#amPct', { scale: 0.5, opacity: 0, duration: .4, ease: 'back.out(2)' });
@@ -903,9 +944,11 @@ function selectDev(dev) {
   const mlItem = document.querySelector(`.ml-item[data-id="${dev.id}"]`);
   if (mlItem) mlItem.classList.add('active-item');
 
-  const color = pct >= 85 ? '#2A9B7A' : pct >= 70 ? '#F5C842' : '#E63B3B';
-  const text = pct >= 85 ? 'PERFECT!' : pct >= 70 ? 'GREAT MATCH!' : 'POSSIBLE!';
-  flashSFX(text, color);
+  if (pct !== null && pct !== undefined) {
+    const color = pct >= 85 ? '#2A9B7A' : pct >= 70 ? '#F5C842' : '#E63B3B';
+    const text = pct >= 85 ? 'PERFECT!' : pct >= 70 ? 'GREAT MATCH!' : 'POSSIBLE!';
+    flashSFX(text, color);
+  }
 }
 
 function renderCards() {
@@ -913,8 +956,11 @@ function renderCards() {
   grid.innerHTML = '';
 
   if (state.filteredDevs.length === 0) {
-    $('noResults').style.display = 'block';
-    $('resultCount').textContent = '0';
+    if (state.apiError) {
+      setNoResultsMessage('ERROR', 'Could not load developers.<br>Check the API and try again.');
+    } else {
+      setNoResultsMessage('MISS!!', 'No developers found with those skills.<br>Try removing some filters.');
+    }
     return;
   }
 
@@ -926,13 +972,14 @@ function renderCards() {
     card.className = 'user-card';
     card.dataset.id = dev.id;
 
-    const badgeClass = dev.match >= 85 ? 'high' : dev.match >= 70 ? 'med' : 'low';
+    const badgeClass = dev.match === null ? 'low' : dev.match >= 85 ? 'high' : dev.match >= 70 ? 'med' : 'low';
+    const badgeText = dev.match === null ? (state.me ? 'NO SCORE' : 'LOGIN TO MATCH') : `${dev.match}% MATCH`;
     const pills = dev.skills.slice(0, 3).map(s => `<div class="uc-pill"><span class="uc-pdot" style="background:${s.color}"></span>${escapeHtml(s.id)}</div>`).join('');
     const gapPills = (dev.gaps || []).slice(0, 2).map(g => `<div class="gap-pill"><span class="up">↑</span>${escapeHtml(g)}</div>`).join('');
     const theyNeedPills = (dev.theyNeed || []).slice(0, 2).map(g => `<div class="gap-pill">${escapeHtml(g)} ↑ you</div>`).join('');
 
     card.innerHTML = `
-      <div class="match-badge ${badgeClass}">${dev.match}% MATCH</div>
+      <div class="match-badge ${badgeClass}">${badgeText}</div>
       <div class="uc-head">
         <div class="uc-av" style="background:${dev.avBg}">${escapeHtml(dev.initials)}</div>
         <div>
@@ -944,11 +991,11 @@ function renderCards() {
       <div class="uc-pills">${pills}</div>
       <div class="gap-row">
         <div class="gap-label">They fill your gaps</div>
-        <div class="gap-pills">${gapPills || '<span style="color:#bbb;font-size:.6rem;font-style:italic;">Login to see gaps</span>'}</div>
+        <div class="gap-pills">${gapPills || `<span style="color:#bbb;font-size:.6rem;font-style:italic;">${state.me ? 'Gap data available in your top matches' : 'Login to see gaps'}</span>`}</div>
       </div>
       <div class="gap-row">
         <div class="gap-label">You fill theirs</div>
-        <div class="gap-pills">${theyNeedPills || '<span style="color:#bbb;font-size:.6rem;font-style:italic;">Login to see</span>'}</div>
+        <div class="gap-pills">${theyNeedPills || `<span style="color:#bbb;font-size:.6rem;font-style:italic;">${state.me ? 'Gap data available in your top matches' : 'Login to see'}</span>`}</div>
       </div>
       <div class="uc-foot">
         <div class="uc-stats">
@@ -989,17 +1036,18 @@ async function fetchDiscoverPage(reset = false) {
       state.page = 1;
       state.hasMore = true;
       state.allDevelopers = [];
+      state.apiError = null;
     }
 
     const params = {
-      sort: state.activeSortType,
+      sort: !state.me && state.activeSortType === 'match' ? 'level' : state.activeSortType,
       page: state.page,
       limit: state.limit,
     };
 
     const search = state.searchQuery.trim();
+    if (search) params.q = search;
     if (state.activeSkillFilter.length === 1) params.skill = state.activeSkillFilter[0];
-    else if (search && state.activeSkillFilter.length === 0) params.skill = search;
 
     const rows = await API.discover(params);
     const incoming = (Array.isArray(rows) ? rows : []).map(normalizeDevFromApi);
@@ -1011,6 +1059,8 @@ async function fetchDiscoverPage(reset = false) {
 
     state.hasMore = incoming.length === state.limit;
     state.page += 1;
+    state.apiError = null;
+    updateHeroStats();
 
     applyFiltersAndRender();
 
@@ -1018,11 +1068,18 @@ async function fetchDiscoverPage(reset = false) {
       selectDev(state.filteredDevs[0]);
     }
   } catch (err) {
-    console.warn('API unavailable, using fallback data:', err.message);
-    state.allDevelopers = FALLBACK_DEVS;
+    console.warn('Discover API failed:', err.message);
+    state.apiError = err.message || 'Could not load developers.';
+    state.allDevelopers = [];
+    state.filteredDevs = [];
     state.hasMore = false;
+    updateHeroStats();
     applyFiltersAndRender();
-    if (!state.activeDevId && state.filteredDevs.length > 0) selectDev(state.filteredDevs[0]);
+    $('amPct').textContent = '--';
+    $('amLabel').textContent = 'DISCOVER UNAVAILABLE';
+    $('amQuote').textContent = 'The API did not respond. Fix the backend and refresh.';
+    drawOverlap({ name: 'Discover', skills: [] });
+    drawGapAnalysis({ skills: [] });
   } finally {
     state.loading = false;
   }
@@ -1035,6 +1092,7 @@ async function loadMyProfileData() {
     state.matches = [];
     refreshMatchMap();
     setNavLabel();
+    updateHeroStats();
     return;
   }
 
@@ -1053,6 +1111,7 @@ async function loadMyProfileData() {
     const matchRows = await API.getMatches(state.me.id, 8).catch(() => []);
     state.matches = (Array.isArray(matchRows) ? matchRows : []).map(normalizeMatch);
     refreshMatchMap();
+    updateHeroStats();
   } catch (err) {
     console.warn('Could not load logged-in user context:', err.message);
     state.me = null;
@@ -1060,6 +1119,7 @@ async function loadMyProfileData() {
     state.matches = [];
     refreshMatchMap();
     setNavLabel();
+    updateHeroStats();
   }
 }
 
@@ -1143,9 +1203,7 @@ async function bootstrap() {
   setupInfiniteScroll();
   setAuthButtonBehavior();
   setNavLabel();
-  countUp('ds1', 12847);
-  countUp('ds2', 84200);
-  countUp('ds3', 347);
+  updateHeroStats();
 
   document.addEventListener('sf:login', async e => {
     state.me = e.detail;

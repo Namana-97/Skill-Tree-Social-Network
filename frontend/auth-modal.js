@@ -163,9 +163,6 @@ const AuthModal = (() => {
           </div>
           <button class="sf-submit" id="sf-login-btn">LOGIN →</button>
           <div class="sf-error" id="sf-login-err"></div>
-          <div style="font-family:'Permanent Marker',cursive;font-size:.7rem;color:#aaa;text-align:center;margin-top:.75rem;">
-            Demo: aryan@example.com / password123
-          </div>
         </div>
 
         <div id="sf-register-form" style="display:none">
