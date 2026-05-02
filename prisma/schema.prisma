@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ScanStatus {
+  pending
+  clean
+  infected
+  failed
+}
+
+enum NotificationStatus {
+  pending
+  sent
+  failed
+}
+
+enum NotificationChannel {
+  email
+  in_app
+}
+
+enum SearchJobAction {
+  upsert
+  delete
+}
+
+enum EvidenceType {
+  profile
+  repo
+  commit
+  project
+  pull_request
+  demo
+  case_study
+  certification
+  article
+  work_sample
+}
+
+model User {
+  id              Int                @id @default(autoincrement())
+  username        String             @unique @db.VarChar(40)
+  email           String             @unique @db.VarChar(255)
+  passwordHash    String             @map("password_hash")
+  displayName     String             @map("display_name") @db.VarChar(80)
+  roleTitle       String?            @map("role_title") @db.VarChar(120)
+  bio             String?
+  githubLogin     String?            @unique @map("github_login") @db.VarChar(80)
+  githubProfileUrl String?           @map("github_profile_url")
+  githubVerifiedAt DateTime?         @map("github_verified_at") @db.Timestamptz(6)
+  avatarInitials  String?            @map("avatar_initials") @db.VarChar(3)
+  avatarColor     String?            @map("avatar_color") @default("#E63B3B") @db.VarChar(20)
+  xp              Int                @default(0)
+  level           Int                @default(1)
+  isAdmin         Boolean            @default(false) @map("is_admin")
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  skills          Skill[]
+  skillEvidence   SkillEvidence[]
+  skillEdges      SkillEdge[]
+  sentVouches     Vouch[]            @relation("Voucher")
+  receivedVouches Vouch[]            @relation("Recipient")
+  matchesA        Match[]            @relation("MatchUserA")
+  matchesB        Match[]            @relation("MatchUserB")
+  uploads         Upload[]
+  notifications   Notification[]
+  analyticsEvents AnalyticsEvent[]
+  auditLogs       ContentAuditLog[]
+
+  @@map("users")
+}
+
+model Skill {
+  id          Int             @id @default(autoincrement())
+  userId      Int             @map("user_id")
+  name        String          @db.VarChar(80)
+  level       Int
+  color       String?         @default("#E63B3B") @db.VarChar(20)
+  proofUrl    String?         @map("proof_url")
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime        @default(now()) @map("updated_at") @db.Timestamptz(6)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  evidence    SkillEvidence[]
+  sourceEdges SkillEdge[] @relation("EdgeSource")
+  targetEdges SkillEdge[] @relation("EdgeTarget")
+  vouches     Vouch[]
+
+  @@unique([userId, name])
+  @@map("skills")
+}
+
+model SkillEvidence {
+  id                  Int          @id @default(autoincrement())
+  skillId             Int          @map("skill_id")
+  userId              Int          @map("user_id")
+  type                EvidenceType
+  title               String       @db.VarChar(120)
+  url                 String
+  canonicalUrl        String?      @map("canonical_url")
+  resourceType        String?      @map("resource_type") @db.VarChar(40)
+  ownerLogin          String?      @map("owner_login") @db.VarChar(80)
+  repositoryName      String?      @map("repository_name") @db.VarChar(120)
+  issuer              String?      @db.VarChar(120)
+  description         String?
+  impact              String?      @db.VarChar(255)
+  verificationSummary String?      @map("verification_summary") @db.VarChar(255)
+  verificationScore   Int          @default(0) @map("verification_score")
+  relevanceScore      Int          @default(0) @map("relevance_score")
+  metadata            Json?
+  isVerified          Boolean      @default(false) @map("is_verified")
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  skill               Skill        @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([skillId])
+  @@index([userId])
+  @@index([ownerLogin])
+  @@map("skill_evidence")
+}
+
+model SkillEdge {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  sourceSkillId Int      @map("source_skill_id")
+  targetSkillId Int      @map("target_skill_id")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceSkill   Skill    @relation("EdgeSource", fields: [sourceSkillId], references: [id], onDelete: Cascade)
+  targetSkill   Skill    @relation("EdgeTarget", fields: [targetSkillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceSkillId, targetSkillId])
+  @@map("skill_edges")
+}
+
+model Vouch {
+  id          Int      @id @default(autoincrement())
+  voucherId   Int      @map("voucher_id")
+  recipientId Int      @map("recipient_id")
+  skillId     Int      @map("skill_id")
+  message     String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  voucher     User     @relation("Voucher", fields: [voucherId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("Recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  skill       Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([voucherId, skillId])
+  @@map("vouches")
+}
+
+model Match {
+  id         Int      @id @default(autoincrement())
+  userAId    Int      @map("user_a_id")
+  userBId    Int      @map("user_b_id")
+  score      Decimal  @db.Decimal(5, 2)
+  computedAt DateTime @default(now()) @map("computed_at") @db.Timestamptz(6)
+  userA      User     @relation("MatchUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB      User     @relation("MatchUserB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+  @@map("matches")
+}
+
+model SiteSetting {
+  key       String   @id @db.VarChar(80)
+  valueText String?  @map("value_text")
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("site_settings")
+}
+
+model Testimonial {
+  id             Int      @id @default(autoincrement())
+  slug           String   @unique @db.VarChar(80)
+  displayName    String   @map("display_name") @db.VarChar(80)
+  roleTitle      String?  @map("role_title") @db.VarChar(120)
+  quote          String
+  avatarInitials String?  @map("avatar_initials") @db.VarChar(3)
+  avatarColor    String?  @map("avatar_color") @default("#E63B3B") @db.VarChar(20)
+  sortOrder      Int      @default(0) @map("sort_order")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("testimonials")
+}
+
+model Upload {
+  id           String      @id @default(cuid())
+  userId       Int?        @map("user_id")
+  originalName String      @map("original_name")
+  fileName     String      @map("file_name")
+  mimeType     String      @map("mime_type")
+  size         Int
+  storagePath  String      @map("storage_path")
+  scanStatus   ScanStatus  @default(pending) @map("scan_status")
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  user         User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("uploads")
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    Int                 @map("user_id")
+  type      String              @db.VarChar(80)
+  channel   NotificationChannel
+  status    NotificationStatus  @default(pending)
+  payload   Json
+  sentAt    DateTime?           @map("sent_at") @db.Timestamptz(6)
+  createdAt DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    Int?     @map("user_id")
+  eventName String   @map("event_name") @db.VarChar(120)
+  path      String?  @db.VarChar(255)
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("analytics_events")
+}
+
+model SearchIndexJob {
+  id         String          @id @default(cuid())
+  entityType String          @map("entity_type") @db.VarChar(80)
+  entityId   String          @map("entity_id") @db.VarChar(80)
+  action     SearchJobAction
+  payload    Json?
+  processedAt DateTime?      @map("processed_at") @db.Timestamptz(6)
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("search_index_jobs")
+}
+
+model ContentAuditLog {
+  id          String   @id @default(cuid())
+  adminUserId Int      @map("admin_user_id")
+  action      String   @db.VarChar(120)
+  entityType  String   @map("entity_type") @db.VarChar(80)
+  entityId    String?  @map("entity_id") @db.VarChar(80)
+  payload     Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  adminUser   User     @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@map("content_audit_logs")
+}

@@ -28,6 +28,10 @@ body {
   overflow-x: hidden;
   cursor: none;
 }
+body.scrolled nav {
+  padding: .72rem 2.5rem;
+  box-shadow: 0 12px 26px rgba(26,26,26,.22);
+}
 
 /* ── CURSOR ── */
 #cur {
@@ -46,6 +50,12 @@ body.hov #cur { transform: translate(-50%,-50%) scale(1.8); }
     var(--yellow) 40px, var(--yellow) 80px,
     var(--ink) 80px, var(--ink) 120px
   );
+  background-size: 240px 6px;
+  animation: edgeShift 12s linear infinite;
+}
+@keyframes edgeShift {
+  from { background-position: 0 0; }
+  to { background-position: 240px 0; }
 }
 
 /* ── NAV ── */
@@ -55,6 +65,7 @@ nav {
   padding: .9rem 2.5rem;
   border-bottom: var(--border);
   position: sticky; top: 0; z-index: 200;
+  transition: padding .22s ease, box-shadow .22s ease;
 }
 .logo {
   font-family: 'Bangers', cursive;
@@ -113,6 +124,7 @@ nav {
     rgba(26,26,26,.03) 2deg, rgba(26,26,26,.03) 2.3deg
   );
   pointer-events: none; z-index: 0;
+  will-change: transform;
 }
 
 /* ══════════════════════════════════════
@@ -125,6 +137,7 @@ nav {
   border: var(--border);
   background: var(--ink);
   position: relative; overflow: hidden;
+  will-change: transform;
 }
 .ph-left {
   padding: 2.5rem 2rem;
@@ -134,7 +147,7 @@ nav {
 }
 
 /* Avatar — manga style with ink border */
-.avatar-wrap { position: relative; }
+.avatar-wrap { position: relative; will-change: transform; }
 .avatar {
   width: 100px; height: 100px; border-radius: 50%;
   background: linear-gradient(135deg, var(--red), var(--purple));
@@ -143,6 +156,7 @@ nav {
   display: flex; align-items: center; justify-content: center;
   font-family: 'Bangers', cursive; font-size: 2.2rem; letter-spacing: 2px;
   color: white;
+  will-change: transform;
 }
 .avatar-badge {
   position: absolute; bottom: -4px; right: -4px;
@@ -243,6 +257,7 @@ nav {
   gap: 0;
   border: var(--border);
   border-top: none;
+  will-change: transform;
 }
 
 /* ── LEFT: SKILL TREE PANEL ── */
@@ -251,6 +266,7 @@ nav {
   background: var(--ink);
   position: relative;
   min-height: 600px;
+  will-change: transform;
 }
 .tree-panel-header {
   display: flex; justify-content: space-between; align-items: center;
@@ -333,6 +349,7 @@ nav {
   border-bottom: var(--border);
   padding: 1.5rem;
   position: relative; overflow: hidden;
+  will-change: transform;
 }
 .side-panel:last-child { border-bottom: none; }
 
@@ -352,6 +369,7 @@ nav {
   background: white;
   transition: transform .2s, border-color .2s, box-shadow .2s;
   cursor: none;
+  will-change: transform;
 }
 .skill-item:hover { transform: translate(-2px,-2px); border-color: var(--ink); box-shadow: 3px 3px 0 var(--ink); }
 .skill-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(26,26,26,.3); }
@@ -359,6 +377,19 @@ nav {
 .skill-name { font-family: 'Oswald', sans-serif; font-size: .82rem; font-weight: 700; letter-spacing: .5px; display: block; }
 .skill-meta { font-size: .66rem; color: #666; font-style: italic; margin-top: .15rem; }
 .skill-proof { margin-top: .25rem; }
+.skill-signals {
+  display: flex; flex-wrap: wrap; gap: .3rem;
+  margin-top: .35rem;
+}
+.skill-tag {
+  font-family: 'Oswald', sans-serif; font-size: .58rem; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  border: 1.5px solid rgba(26,26,26,.12);
+  padding: .14rem .38rem;
+  color: #666; background: rgba(26,26,26,.02);
+}
+.skill-tag.trust { color: var(--green); border-color: rgba(42,155,122,.3); }
+.skill-tag.verified { color: var(--blue); border-color: rgba(26,127,194,.3); }
 .skill-proof a {
   font-family: 'Oswald', sans-serif; font-size: .62rem; font-weight: 700;
   letter-spacing: 1px; text-transform: uppercase; color: var(--blue);
@@ -380,6 +411,18 @@ nav {
 .skill-action-btn:hover { border-color: var(--ink); color: var(--ink); }
 .skill-action-btn.primary { border-color: var(--green); color: var(--green); }
 .skill-action-btn.danger { border-color: var(--red); color: var(--red); }
+.skill-action-btn:disabled,
+.skill-action-btn.disabled {
+  border-color: rgba(26,26,26,.12);
+  color: rgba(26,26,26,.4);
+  background: rgba(26,26,26,.04);
+  cursor: not-allowed;
+}
+.skill-action-btn:disabled:hover,
+.skill-action-btn.disabled:hover {
+  border-color: rgba(26,26,26,.12);
+  color: rgba(26,26,26,.4);
+}
 .empty-state {
   font-family: 'Permanent Marker', cursive;
   font-size: .74rem;
@@ -411,6 +454,7 @@ nav {
   border: 2px solid rgba(26,26,26,.08); background: white;
   padding: 1rem; transition: transform .2s, box-shadow .2s;
   cursor: none; margin-bottom: .7rem;
+  will-change: transform;
 }
 .match-card:last-child { margin-bottom: 0; }
 .match-card:hover { transform: translate(-2px,-2px); box-shadow: 3px 3px 0 var(--ink); }
@@ -450,11 +494,18 @@ nav {
   background: var(--bg);
   border: var(--border);
   box-shadow: 8px 8px 0 var(--ink);
-  padding: 2rem; width: 380px; max-width: 90vw;
+  padding: 2rem; width: 560px; max-width: 94vw;
   position: relative;
   animation: popIn .3s cubic-bezier(.34,1.56,.64,1);
 }
 @keyframes popIn { from{transform:scale(.8);opacity:0} to{transform:scale(1);opacity:1} }
+@keyframes floatBob {
+  0%,100% { transform: translateY(0px); }
+  50% { transform: translateY(-7px); }
+}
+.avatar-wrap {
+  animation: floatBob 5.2s ease-in-out infinite;
+}
 .modal-title {
   font-family: 'Bangers', cursive; font-size: 1.8rem; letter-spacing: 3px;
   margin-bottom: 1.5rem; color: var(--ink);
@@ -466,12 +517,30 @@ nav {
   color: var(--ink); display: block; margin-bottom: .4rem; margin-top: 1rem;
 }
 .modal label:first-of-type { margin-top: 0; }
-.modal input, .modal select {
+.modal input, .modal select, .modal textarea {
   width: 100%; border: var(--border); background: white;
   padding: .6rem .8rem; font-family: 'DM Sans', sans-serif; font-size: .88rem;
   outline: none; cursor: none;
 }
-.modal input:focus, .modal select:focus { border-color: var(--red); box-shadow: 3px 3px 0 var(--yellow); }
+.modal select:disabled {
+  background: rgba(26,26,26,.06);
+  color: #777;
+}
+.modal textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+.modal input:focus, .modal select:focus, .modal textarea:focus { border-color: var(--red); box-shadow: 3px 3px 0 var(--yellow); }
+.field-note {
+  font-size: .66rem;
+  color: #777;
+  line-height: 1.4;
+  margin-top: .35rem;
+}
+.field-note.locked {
+  color: var(--blue);
+  font-weight: 700;
+}
 
 /* color picker row */
 .color-row { display: flex; gap: .5rem; margin-top: .5rem; flex-wrap: wrap; }
@@ -481,6 +550,61 @@ nav {
 }
 .color-opt:hover { transform: scale(1.2); }
 .color-opt.selected { border-color: var(--ink); transform: scale(1.2); }
+
+.evidence-toolbar {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: .75rem; margin-top: 1rem;
+}
+.evidence-toolbar label {
+  margin: 0;
+}
+.evidence-add {
+  font-family: 'Oswald', sans-serif; font-size: .68rem; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  border: 1.5px dashed rgba(26,26,26,.25);
+  background: transparent; color: var(--ink);
+  padding: .35rem .65rem; cursor: none;
+}
+.evidence-add:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+.evidence-rows {
+  display: flex; flex-direction: column; gap: .8rem;
+  margin-top: .75rem;
+}
+.evidence-card {
+  border: 2px solid rgba(26,26,26,.08);
+  background: white;
+  padding: .85rem;
+}
+.evidence-card.invalid {
+  border-color: var(--red);
+  box-shadow: 3px 3px 0 rgba(230,59,59,.18);
+}
+.evidence-card-head {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: .75rem; margin-bottom: .75rem;
+}
+.evidence-card-title {
+  font-family: 'Bangers', cursive; font-size: .82rem; letter-spacing: 2px;
+  color: var(--ink);
+}
+.evidence-remove {
+  font-family: 'Oswald', sans-serif; font-size: .62rem; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  border: 1.5px solid rgba(230,59,59,.25);
+  background: transparent; color: var(--red);
+  padding: .2rem .45rem; cursor: none;
+}
+.evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+}
+.evidence-grid .full {
+  grid-column: 1 / -1;
+}
 
 .modal-btns { display: flex; gap: .75rem; margin-top: 1.5rem; }
 .mbtn {
@@ -568,6 +692,7 @@ nav {
   border-right: 2px solid rgba(26,26,26,.08);
   padding: 1rem 1.5rem; flex-shrink: 0; min-width: 200px;
   transition: background .2s;
+  will-change: transform;
 }
 .activity-item:hover { background: white; }
 .ai-type {
@@ -589,6 +714,7 @@ nav {
   .sidebar{border-top:var(--border);}
   .activity-strip{grid-template-columns:1fr;}
   .activity-label{display:none;}
+  .evidence-grid{grid-template-columns:1fr;}
 }
 </style>
 </head>
@@ -608,6 +734,7 @@ nav {
     <div class="modal-title" id="skillModalTitle">+ ADD SKILL</div>
     <label>Skill name</label>
     <input type="text" id="skillName" placeholder="e.g. TypeScript"/>
+    <div class="field-note">Add one skill at a time. For example, use `HTML` and `CSS` separately.</div>
     <label>Level (1–5)</label>
     <select id="skillLevel">
       <option value="1">Lv.1 — Beginner</option>
@@ -616,6 +743,7 @@ nav {
       <option value="4">Lv.4 — Advanced</option>
       <option value="5">Lv.5 — Expert</option>
     </select>
+    <div class="field-note locked" id="skillLevelNote">Level is set automatically from verified public GitHub evidence.</div>
     <label>Color</label>
     <div class="color-row" id="colorRow">
       <div class="color-opt selected" data-color="#E63B3B" style="background:#E63B3B"></div>
@@ -626,8 +754,14 @@ nav {
       <div class="color-opt" data-color="#E8849A" style="background:#E8849A"></div>
       <div class="color-opt" data-color="#E87C2A" style="background:#E87C2A"></div>
     </div>
-    <label>Proof URL</label>
-    <input type="url" id="skillProofUrl" placeholder="https://github.com/your-project"/>
+    <label>GitHub proof URL</label>
+    <input type="url" id="skillProofUrl" placeholder="https://github.com/your-profile-or-repo"/>
+    <div class="field-note" id="skillProofNote">Required. Only public `github.com` profile, repo, PR, commit, or repo-path links are accepted.</div>
+    <div class="evidence-toolbar">
+      <label>Extra GitHub links</label>
+      <button type="button" class="evidence-add" id="addEvidenceRowBtn">+ Add evidence</button>
+    </div>
+    <div class="evidence-rows" id="evidenceRows"></div>
     <div class="modal-btns">
       <button class="mbtn primary" id="addSkillBtn">SAVE SKILL ⚡</button>
       <button class="mbtn cancel" id="cancelBtn">CANCEL</button>
@@ -789,9 +923,17 @@ const CATEGORY_KEYWORDS = {
   devops: ['docker', 'kubernetes', 'terraform', 'aws', 'linux', 'devops', 'mlops'],
   ml: ['python', 'tensorflow', 'pytorch', 'llm', 'ml', 'ai', 'nlp'],
 };
+const EVIDENCE_TYPES = [
+  ['profile', 'GitHub Profile'],
+  ['repo', 'Repository'],
+  ['pull_request', 'Pull Request'],
+  ['commit', 'Commit'],
+];
+const EVIDENCE_TYPE_LABELS = Object.fromEntries(EVIDENCE_TYPES);
 
 const state = {
   viewer: null,
+  viewerSkills: [],
   profile: null,
   viewedUserId: null,
   canEdit: false,
@@ -890,6 +1032,93 @@ function flashSFX(text, color = '#F5C842') {
   gsap.to(el, { scale: 1.5, opacity: 0, duration: 0.5, delay: 0.5, ease: 'power2.in', onComplete: () => el.remove() });
 }
 
+function setupNavScrollMotion() {
+  const syncNav = () => document.body.classList.toggle('scrolled', window.scrollY > 24);
+  syncNav();
+  window.addEventListener('scroll', syncNav, { passive: true });
+}
+
+function setupAmbientMotion() {
+  gsap.utils.toArray('.sl-bg').forEach((el, index) => {
+    gsap.to(el, {
+      rotation: index % 2 === 0 ? 8 : -8,
+      scale: 1.04,
+      duration: 16 + index * 2,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut',
+      transformOrigin: '50% 50%',
+    });
+  });
+}
+
+function setupMagneticHover(selector) {
+  document.querySelectorAll(selector).forEach(el => {
+    el.addEventListener('mousemove', event => {
+      const rect = el.getBoundingClientRect();
+      const x = (event.clientX - rect.left - rect.width / 2) / rect.width;
+      const y = (event.clientY - rect.top - rect.height / 2) / rect.height;
+      gsap.to(el, { x: x * 8, y: y * 6, duration: .24, ease: 'power2.out' });
+    });
+    el.addEventListener('mouseleave', () => {
+      gsap.to(el, { x: 0, y: 0, duration: .6, ease: 'elastic.out(1,.45)' });
+    });
+  });
+}
+
+function setupPanelDepth(selector, strength = 4) {
+  document.querySelectorAll(selector).forEach(el => {
+    el.addEventListener('mousemove', event => {
+      const rect = el.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width - .5;
+      const y = (event.clientY - rect.top) / rect.height - .5;
+      gsap.to(el, {
+        rotateY: x * strength,
+        rotateX: -y * (strength - 1),
+        x: x * 6,
+        y: y * 4,
+        duration: .3,
+        ease: 'power2.out',
+        transformPerspective: 900,
+        transformOrigin: '50% 50%',
+      });
+    });
+    el.addEventListener('mouseleave', () => {
+      gsap.to(el, {
+        rotateY: 0,
+        rotateX: 0,
+        x: 0,
+        y: 0,
+        duration: .7,
+        ease: 'elastic.out(1,.45)',
+      });
+    });
+  });
+}
+
+function animateContainerItems(selector, options = {}) {
+  const items = document.querySelectorAll(selector);
+  if (!items.length) return;
+  gsap.fromTo(items,
+    {
+      opacity: 0,
+      y: options.y ?? 14,
+      x: options.x ?? 0,
+      scale: options.scale ?? 1,
+    },
+    {
+      opacity: 1,
+      y: 0,
+      x: 0,
+      scale: 1,
+      duration: options.duration ?? .45,
+      stagger: options.stagger ?? .05,
+      ease: options.ease ?? 'power2.out',
+      clearProps: 'all',
+    }
+  );
+}
+
 function updateNavButton() {
   $('navAuthBtn').textContent = state.viewer?.display_name
     ? state.viewer.display_name.split(' ')[0].toUpperCase()
@@ -934,6 +1163,237 @@ function setSelectedColor(color) {
   });
 }
 
+function defaultEvidenceRow() {
+  return {
+    type: 'repo',
+    title: '',
+    url: '',
+    issuer: '',
+    description: '',
+    impact: '',
+  };
+}
+
+function collectEvidenceRows() {
+  return Array.from(document.querySelectorAll('#evidenceRows .evidence-card')).map(card => ({
+    type: card.querySelector('.evidence-type').value,
+    title: card.querySelector('.evidence-title').value.trim(),
+    url: card.querySelector('.evidence-url').value.trim(),
+    issuer: card.querySelector('.evidence-issuer').value.trim(),
+    description: card.querySelector('.evidence-description').value.trim(),
+    impact: card.querySelector('.evidence-impact').value.trim(),
+  }));
+}
+
+function hasStructuredEvidence(rows = collectEvidenceRows()) {
+  return rows.some(row => [row.title, row.url, row.issuer, row.description, row.impact].some(value => value));
+}
+
+function normalizeSkillName(value = '') {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+const CANONICAL_SKILL_ALIASES = {
+  html: 'html',
+  html5: 'html',
+  python: 'python',
+  javascript: 'javascript',
+  js: 'javascript',
+  typescript: 'typescript',
+  ts: 'typescript',
+  react: 'react',
+  reactjs: 'react',
+  next: 'next.js',
+  nextjs: 'next.js',
+  node: 'node',
+  nodejs: 'node',
+  sql: 'sql',
+  postgres: 'sql',
+  postgresql: 'sql',
+  docker: 'docker',
+  kubernetes: 'kubernetes',
+  k8s: 'kubernetes',
+  terraform: 'terraform',
+  go: 'go',
+  golang: 'go',
+  rust: 'rust',
+  vue: 'vue',
+  vuejs: 'vue',
+  css: 'css',
+  graphql: 'graphql',
+  tensorflow: 'tensorflow',
+  fastapi: 'fastapi',
+  redis: 'redis',
+  grpc: 'grpc',
+  aws: 'aws',
+  mlops: 'mlops',
+  linux: 'linux',
+  figma: 'figma',
+};
+
+function canonicalSkillKey(value = '') {
+  const normalized = normalizeSkillName(value);
+  return CANONICAL_SKILL_ALIASES[normalized] || normalized;
+}
+
+function splitCompositeSkillName(value = '') {
+  return String(value)
+    .split(/[\/,&]+/)
+    .map(part => part.trim())
+    .filter(Boolean);
+}
+
+function isGitHubUrl(value) {
+  try {
+    const url = new URL(value);
+    return ['github.com', 'www.github.com'].includes(url.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+function updateLevelFieldState() {
+  $('skillLevel').disabled = true;
+  $('skillLevelNote').textContent = 'Level is set automatically from verified public GitHub evidence.';
+  $('skillLevelNote').classList.add('locked');
+}
+
+function readEvidenceRows() {
+  return collectEvidenceRows().reduce((items, row, index) => {
+    const card = document.querySelectorAll('#evidenceRows .evidence-card')[index];
+    card.classList.remove('invalid');
+    const hasAnyValue = [
+      row.title,
+      row.url,
+      row.issuer,
+      row.description,
+      row.impact,
+    ].some(value => value);
+    if (!hasAnyValue) return items;
+
+    if (!row.url) {
+      card.classList.add('invalid');
+      throw new Error('Each extra evidence entry needs a GitHub URL.');
+    }
+
+    if (!isGitHubUrl(row.url)) {
+      card.classList.add('invalid');
+      throw new Error('Only public github.com links are accepted as skill proof.');
+    }
+
+    items.push(row);
+    return items;
+  }, []);
+}
+
+function renderEvidenceRows(items = [], ensureOne = false) {
+  const rows = $('evidenceRows');
+  const source = items.length ? items : (ensureOne ? [defaultEvidenceRow()] : []);
+
+  rows.innerHTML = source.map((item, index) => `
+    <div class="evidence-card" data-index="${index}">
+      <div class="evidence-card-head">
+        <div class="evidence-card-title">Evidence ${index + 1}</div>
+        <button type="button" class="evidence-remove" data-index="${index}">Remove</button>
+      </div>
+      <div class="evidence-grid">
+        <div>
+          <label>Type</label>
+          <select class="evidence-type">
+            ${EVIDENCE_TYPES.map(([value, label]) => `<option value="${value}"${item.type === value ? ' selected' : ''}>${label}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label>Title</label>
+          <input type="text" class="evidence-title" placeholder="Optional note for yourself" value="${escapeHtml(item.title || '')}"/>
+        </div>
+        <div class="full">
+          <label>GitHub URL</label>
+          <input type="url" class="evidence-url" placeholder="https://github.com/your-proof" value="${escapeHtml(item.url || '')}"/>
+        </div>
+        <div>
+          <label>Issuer / source</label>
+          <input type="text" class="evidence-issuer" placeholder="Company, repo, course, client" value="${escapeHtml(item.issuer || '')}"/>
+        </div>
+        <div>
+          <label>Impact</label>
+          <input type="text" class="evidence-impact" placeholder="What changed because of this?" value="${escapeHtml(item.impact || '')}"/>
+        </div>
+        <div class="full">
+          <label>Description</label>
+          <textarea class="evidence-description" placeholder="What did you build, own, or improve?">${escapeHtml(item.description || '')}</textarea>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  updateLevelFieldState();
+}
+
+function primaryProofUrl(skill) {
+  return skill.proof_url || skill.primary_proof_url || skill.evidence?.[0]?.url || '';
+}
+
+function verifiedEvidenceCount(skill) {
+  return (skill.evidence || []).filter(item => item.is_verified).length;
+}
+
+function verificationStatusLabel(skill) {
+  if (skill.verification_status === 'github_verified') return 'GitHub verified';
+  if (skill.verification_status === 'proof_unverified') return 'Proof present, not trusted';
+  return 'No proof';
+}
+
+function viewerSkillFor(skillName) {
+  const key = canonicalSkillKey(skillName);
+  const matches = state.viewerSkills.filter(skill => canonicalSkillKey(skill.name) === key);
+  if (!matches.length) return null;
+  return [...matches].sort((left, right) => right.level - left.level)[0];
+}
+
+function vouchEligibilityForSkill(skill) {
+  if (!state.viewer) {
+    return {
+      allowed: false,
+      label: 'Login',
+      reason: 'Log in to vouch for skills.'
+    };
+  }
+
+  if (state.canEdit) {
+    return {
+      allowed: false,
+      label: 'Your skill',
+      reason: 'You cannot vouch for your own skill.'
+    };
+  }
+
+  const viewerSkill = viewerSkillFor(skill.id);
+  if (!viewerSkill) {
+    return {
+      allowed: false,
+      label: `Need ${skill.id}`,
+      reason: `You need your own ${skill.id} skill before you can vouch for it.`
+    };
+  }
+
+  if (viewerSkill.level < skill.level) {
+    return {
+      allowed: false,
+      label: `Need Lv.${skill.level}+`,
+      reason: `You need ${skill.id} at level ${skill.level} or higher to vouch for it.`
+    };
+  }
+
+  return {
+    allowed: true,
+    label: 'Vouch',
+    reason: `You can vouch for ${skill.id}.`
+  };
+}
+
 function openSkillModal(skill = null) {
   state.editingSkillId = skill?._dbId || null;
   $('skillModalTitle').textContent = state.editingSkillId ? 'EDIT SKILL' : '+ ADD SKILL';
@@ -941,18 +1401,23 @@ function openSkillModal(skill = null) {
   $('skillName').value = skill?.id || '';
   $('skillName').disabled = !!state.editingSkillId;
   $('skillLevel').value = String(skill?.level || 3);
-  $('skillProofUrl').value = skill?.proof_url || '';
+  $('skillProofUrl').value = primaryProofUrl(skill || {}) || '';
   $('skillName').style.borderColor = '';
   $('skillProofUrl').style.borderColor = '';
   setSelectedColor(skill?.color || '#E63B3B');
+  renderEvidenceRows(skill?.evidence || [], true);
   $('modal').classList.add('open');
-  $('skillName').focus();
+  (state.editingSkillId || $('skillLevel').disabled ? $('skillProofUrl') : $('skillName')).focus();
 }
 
 function closeSkillModal() {
   state.editingSkillId = null;
   $('modal').classList.remove('open');
   $('skillName').disabled = false;
+  $('skillLevel').disabled = true;
+  $('skillLevelNote').textContent = 'Level is set automatically from verified public GitHub evidence.';
+  $('skillLevelNote').classList.add('locked');
+  renderEvidenceRows([]);
 }
 
 function renderEmptyState(container, text) {
@@ -976,6 +1441,8 @@ function renderVouches() {
       </div>
     </div>
   `).join('');
+
+  animateContainerItems('#vouchList .vouch-item', { x: 18 });
 }
 
 function renderMatches() {
@@ -1008,6 +1475,8 @@ function renderMatches() {
       </div>
     `;
   }).join('');
+
+  animateContainerItems('#profileMatchList .match-card', { x: 18 });
 }
 
 function renderActivity() {
@@ -1055,6 +1524,8 @@ function renderActivity() {
       <div class="ai-time">${escapeHtml(timeAgo(item.time))}</div>
     </div>
   `).join('');
+
+  animateContainerItems('#activityItems .activity-item', { x: 16, y: 0 });
 }
 
 function renderSkillList() {
@@ -1068,6 +1539,17 @@ function renderSkillList() {
   [...state.nodes].sort((a, b) => b.level - a.level || a.id.localeCompare(b.id)).forEach(skill => {
     const item = document.createElement('div');
     item.className = 'skill-item';
+    const evidence = skill.evidence || [];
+    const proofUrl = primaryProofUrl(skill);
+    const verifiedCount = verifiedEvidenceCount(skill);
+    const trustScore = Math.round(skill.trust_score || 0);
+    const levelSourceLabel = skill.level_source === 'github' ? 'GitHub-verified level' : 'Unverified level';
+    const verificationLabel = verificationStatusLabel(skill);
+    const evidenceLinks = evidence.slice(0, 2).map(entry => `
+      <a href="${escapeHtml(entry.url)}" target="_blank" rel="noopener noreferrer">
+        ${escapeHtml(EVIDENCE_TYPE_LABELS[entry.type] || 'Evidence')}: ${escapeHtml(entry.title)} ↗
+      </a>
+    `).join(' · ');
 
     const dots = Array.from({ length: 5 }, (_, index) => {
       const active = index < skill.level;
@@ -1082,7 +1564,10 @@ function renderSkillList() {
         <button class="skill-action-btn danger" data-action="delete">Delete</button>
       `;
     } else if (state.viewer) {
-      actions = `<button class="skill-action-btn primary" data-action="vouch">Vouch</button>`;
+      const vouchEligibility = vouchEligibilityForSkill(skill);
+      actions = vouchEligibility.allowed
+        ? `<button class="skill-action-btn primary" data-action="vouch">Vouch</button>`
+        : `<button class="skill-action-btn disabled" data-action="vouch-blocked" title="${escapeHtml(vouchEligibility.reason)}" disabled>${escapeHtml(vouchEligibility.label)}</button>`;
     } else {
       actions = `<button class="skill-action-btn primary" data-action="login">Login</button>`;
     }
@@ -1091,8 +1576,17 @@ function renderSkillList() {
       <div class="skill-dot" style="background:${escapeHtml(skill.color)}"></div>
       <div class="skill-main">
         <span class="skill-name">${escapeHtml(skill.id)}</span>
-        <div class="skill-meta">${LEVEL_LABELS[skill.level]} · ${skill.vouches || 0} vouches</div>
-        <div class="skill-proof">${skill.proof_url ? `<a href="${escapeHtml(skill.proof_url)}" target="_blank" rel="noopener noreferrer">Proof ↗</a>` : ''}</div>
+        <div class="skill-meta">${LEVEL_LABELS[skill.level]} · ${levelSourceLabel} · ${verificationLabel} · ${skill.vouches || 0} vouches · Trust ${trustScore}/100</div>
+        <div class="skill-proof">${proofUrl ? `<a href="${escapeHtml(proofUrl)}" target="_blank" rel="noopener noreferrer">Featured proof ↗</a>` : ''}</div>
+        <div class="skill-signals">
+          <span class="skill-tag trust">Trust ${trustScore}</span>
+          <span class="skill-tag">${levelSourceLabel}</span>
+          <span class="skill-tag ${skill.verification_status === 'github_verified' ? 'verified' : ''}">${verificationLabel}</span>
+          <span class="skill-tag">${evidence.length} evidence ${evidence.length === 1 ? 'item' : 'items'}</span>
+          ${verifiedCount ? `<span class="skill-tag verified">${verifiedCount} verified</span>` : ''}
+        </div>
+        <div class="skill-meta">${escapeHtml(skill.verification_summary || 'Add a public GitHub proof to make this skill trustworthy.')}</div>
+        <div class="skill-proof">${evidenceLinks}</div>
       </div>
       <div class="skill-right">
         <div class="skill-level-dots">${dots}</div>
@@ -1140,6 +1634,8 @@ function renderSkillList() {
 
     list.appendChild(item);
   });
+
+  animateContainerItems('#skillList .skill-item', { x: 14 });
 }
 
 function normalizeLinkEndpoints() {
@@ -1232,6 +1728,15 @@ function renderTree() {
   sim.force('center', d3.forceCenter(treeWidth() / 2, treeHeight() / 2));
   sim.alpha(0.35).restart();
 
+  gsap.fromTo(gLink.selectAll('.d3-link').nodes(),
+    { opacity: 0 },
+    { opacity: 1, duration: .45, stagger: .03, ease: 'power2.out' }
+  );
+  gsap.fromTo(gNode.selectAll('.d3-node').nodes(),
+    { opacity: 0, y: 10 },
+    { opacity: 1, y: 0, duration: .5, stagger: .04, ease: 'power2.out' }
+  );
+
   renderSkillList();
   $('treeHint').textContent = state.connectMode
     ? 'CONNECT MODE ON — CLICK A NODE TO START CONNECTING'
@@ -1269,6 +1774,12 @@ function findLinkBetween(leftId, rightId) {
 
 function showNodeDetail(node, event) {
   const detail = $('nodeDetail');
+  const proofUrl = primaryProofUrl(node);
+  const evidenceCount = node.evidence_count || node.evidence?.length || 0;
+  const trustScore = Math.round(node.trust_score || 0);
+  const verifiedCount = verifiedEvidenceCount(node);
+  const levelSourceLabel = node.level_source === 'github' ? 'GitHub-verified level' : 'Unverified level';
+  const verificationLabel = verificationStatusLabel(node);
   $('nd-name').textContent = node.id;
   $('nd-level').textContent = `LV.${node.level} — ${LEVEL_LABELS[node.level]}`;
   const dots = $('nd-dots');
@@ -1279,9 +1790,17 @@ function showNodeDetail(node, event) {
     if (index <= node.level) dot.style.background = node.color;
     dots.appendChild(dot);
   }
-  $('nd-vouches').innerHTML = node.proof_url
-    ? `✦ ${node.vouches || 0} vouches · <a href="${escapeHtml(node.proof_url)}" target="_blank" rel="noopener noreferrer">Proof ↗</a>`
-    : `✦ ${node.vouches || 0} vouches from peers`;
+  $('nd-vouches').innerHTML = [
+    levelSourceLabel,
+    verificationLabel,
+    `✦ ${node.vouches || 0} vouches`,
+    `Trust ${trustScore}/100`,
+    evidenceCount ? `${evidenceCount} evidence ${evidenceCount === 1 ? 'item' : 'items'}` : 'No structured evidence yet',
+    verifiedCount ? `${verifiedCount} verified` : '',
+    node.verification_summary || '',
+  ].filter(Boolean).join(' · ') + (proofUrl
+    ? ` · <a href="${escapeHtml(proofUrl)}" target="_blank" rel="noopener noreferrer">Proof ↗</a>`
+    : '');
 
   const rect = svgEl.getBoundingClientRect();
   detail.style.display = 'block';
@@ -1387,10 +1906,18 @@ function mapProfileData(profileData, treeData, vouches, matches) {
   state.nodes = (treeData.nodes || []).map(node => ({
     id: node.name,
     level: node.level,
+    level_source: node.level_source || 'manual',
     color: node.color || '#E63B3B',
     vouches: node.vouch_count || 0,
     proof_url: node.proof_url || '',
+    primary_proof_url: node.primary_proof_url || '',
     created_at: node.created_at,
+    evidence_count: node.evidence_count || 0,
+    verified_evidence_count: node.verified_evidence_count || 0,
+    verification_status: node.verification_status || 'no_proof',
+    verification_summary: node.verification_summary || '',
+    trust_score: node.trust_score || 0,
+    evidence: Array.isArray(node.evidence) ? node.evidence : [],
     _dbId: node.id,
   }));
   state.links = (treeData.edges || []).map(edge => ({
@@ -1402,9 +1929,19 @@ function mapProfileData(profileData, treeData, vouches, matches) {
   state.matches = Array.isArray(matches) ? matches : [];
 }
 
+function mapViewerSkills(treeData) {
+  state.viewerSkills = Array.isArray(treeData?.nodes)
+    ? treeData.nodes.map(node => ({
+        name: node.name,
+        level: node.level,
+      }))
+    : [];
+}
+
 async function loadViewer() {
   if (!API.isLoggedIn()) {
     state.viewer = null;
+    state.viewerSkills = [];
     updateNavButton();
     return;
   }
@@ -1414,6 +1951,7 @@ async function loadViewer() {
     localStorage.setItem('sf_user_id', state.viewer.id);
   } catch {
     state.viewer = null;
+    state.viewerSkills = [];
   }
   updateNavButton();
 }
@@ -1433,14 +1971,18 @@ async function loadProfile() {
   clearNodeSelections();
 
   try {
-    const [profileData, treeData, vouches, matches] = await Promise.all([
+    const [profileData, treeData, vouches, matches, viewerTreeData] = await Promise.all([
       API.getProfile(state.viewedUserId),
       API.getSkillTree(state.viewedUserId),
       API.getVouches(state.viewedUserId),
       state.canEdit ? API.getMatches(state.viewedUserId, 5).catch(() => []) : Promise.resolve([]),
+      state.viewer && !state.canEdit
+        ? API.getSkillTree(state.viewer.id).catch(() => null)
+        : Promise.resolve(null),
     ]);
 
     mapProfileData(profileData, treeData, vouches, matches);
+    mapViewerSkills(state.canEdit ? treeData : viewerTreeData);
     updateProfileHeader(profileData.user);
     updateSidebarCopy();
     renderStats();
@@ -1454,6 +1996,7 @@ async function loadProfile() {
     state.links = [];
     state.vouches = [];
     state.matches = [];
+    state.viewerSkills = [];
     renderTree();
     renderVouches();
     renderMatches();
@@ -1470,20 +2013,38 @@ async function saveSkill() {
     $('skillName').style.borderColor = '#E63B3B';
     return;
   }
+  const skillParts = splitCompositeSkillName(name);
+  if (skillParts.length > 1) {
+    $('skillName').style.borderColor = '#E63B3B';
+    window.alert(`Add one skill at a time. "${name}" combines multiple skills. Add ${skillParts.map(part => `"${part}"`).join(' and ')} separately.`);
+    return;
+  }
+  if (!proofUrl && !collectEvidenceRows().some(row => row.url)) {
+    $('skillProofUrl').style.borderColor = '#E63B3B';
+    window.alert('A public GitHub proof URL is required for every skill.');
+    return;
+  }
+  if (proofUrl && !isGitHubUrl(proofUrl)) {
+    $('skillProofUrl').style.borderColor = '#E63B3B';
+    window.alert('Only public github.com links are accepted as skill proof.');
+    return;
+  }
 
   const level = parseInt($('skillLevel').value, 10);
-  const payload = {
-    level,
-    color: state.selectedColor,
-    proof_url: proofUrl || null,
-  };
-
   try {
+    const payload = {
+      level,
+      color: state.selectedColor,
+      proof_url: proofUrl || null,
+      evidence: readEvidenceRows(),
+    };
+
     if (state.editingSkillId) {
       await API.updateSkill(state.editingSkillId, payload);
       flashSFX('UPDATED!', '#1A7FC2');
     } else {
-      const exists = state.nodes.some(node => node.id.toLowerCase() === name.toLowerCase());
+      const normalizedName = canonicalSkillKey(name);
+      const exists = state.nodes.some(node => canonicalSkillKey(node.id) === normalizedName);
       if (exists) {
         $('skillName').style.borderColor = '#E63B3B';
         return;
@@ -1561,6 +2122,19 @@ function bindStaticEvents() {
   $('skillName').addEventListener('keydown', event => {
     if (event.key === 'Enter') saveSkill();
   });
+  $('addEvidenceRowBtn').addEventListener('click', () => {
+    renderEvidenceRows([...collectEvidenceRows(), defaultEvidenceRow()]);
+  });
+  $('evidenceRows').addEventListener('click', event => {
+    const button = event.target.closest('.evidence-remove');
+    if (!button) return;
+    const index = parseInt(button.dataset.index, 10);
+    renderEvidenceRows(
+      collectEvidenceRows().filter((_, rowIndex) => rowIndex !== index)
+    );
+  });
+  $('evidenceRows').addEventListener('input', updateLevelFieldState);
+  $('evidenceRows').addEventListener('change', updateLevelFieldState);
 
   window.addEventListener('resize', () => {
     sim.force('center', d3.forceCenter(treeWidth() / 2, treeHeight() / 2));
@@ -1572,6 +2146,10 @@ async function bootstrap() {
   bindStaticEvents();
   setSelectedColor('#E63B3B');
   updateNavButton();
+  setupNavScrollMotion();
+  setupAmbientMotion();
+  setupMagneticHover('.nav-btn,.ctrl-btn,.mbtn,.skill-action-btn,.evidence-add,.evidence-remove');
+  setupPanelDepth('.profile-header,.tree-panel,.side-panel,.activity-strip', 4);
   await loadViewer();
   await loadProfile();
 

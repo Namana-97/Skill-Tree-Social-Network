@@ -3,3 +3,10 @@
 .history/
 node_modules/
 *.log
+.next/
+tsconfig.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+prisma/dev.db*
+uploads/

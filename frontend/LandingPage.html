@@ -17,6 +17,10 @@ body {
   overflow-x: hidden;
   cursor: none;
 }
+body.scrolled nav {
+  padding: .72rem 2.5rem;
+  box-shadow: 0 12px 28px rgba(26,26,26,.28);
+}
 
 /* ── CUSTOM CURSOR ── */
 #cur {
@@ -45,6 +49,7 @@ nav {
   border-bottom: 4px solid #1A1A1A;
   display: flex; justify-content: space-between; align-items: center;
   padding: .9rem 2.5rem;
+  transition: padding .22s ease, box-shadow .22s ease;
 }
 .logo {
   font-family: 'Bangers', cursive;
@@ -110,6 +115,7 @@ nav {
     rgba(26,26,26,.045) 1.8deg, rgba(26,26,26,.045) 2deg
   );
   pointer-events: none; z-index: 0;
+  will-change: transform;
 }
 
 /* Panel diagonal cut */
@@ -188,6 +194,7 @@ nav {
   transform: rotate(-8deg);
   display: inline-block;
   line-height: 1;
+  will-change: transform;
 }
 .sfx.pink {
   color: #F2C4CE;
@@ -275,6 +282,7 @@ nav {
 
 .hero-bubble-wrap {
   position: relative; z-index: 5; margin-top: 2.5rem;
+  will-change: transform;
 }
 
 /* PANEL B — character / tree panel */
@@ -403,6 +411,7 @@ nav {
   position: relative; overflow: hidden;
   padding: 2.5rem 2rem 3rem;
   min-height: 360px;
+  will-change: transform;
 }
 .cs-panel:last-child { border-right: none; }
 
@@ -516,6 +525,7 @@ nav {
   padding: 2.5rem;
   position: relative; overflow: hidden;
   transition: background .25s;
+  will-change: transform;
 }
 .feat-sm:last-child, .feat-sm:nth-last-child(2) { border-bottom: none; }
 .feat-sm:nth-child(even of .feat-sm) { border-left: 4px solid #1A1A1A; }
@@ -571,6 +581,7 @@ nav {
 }
 .speech-card {
   position: relative;
+  will-change: transform;
 }
 .speech-bubble-big {
   background: white; border: 3px solid #1A1A1A;
@@ -730,6 +741,7 @@ nav {
 .free-tag {
   font-family: 'Bangers', cursive; font-size: 2.5rem; letter-spacing: 2px;
   color: white; text-shadow: 3px 3px 0 #E63B3B;
+  will-change: transform;
 }
 .free-sub { font-size: .75rem; color: rgba(245,240,232,.3); letter-spacing: 1px; margin-top: .2rem; }
 
@@ -756,6 +768,27 @@ footer p { font-size: .7rem; color: rgba(245,240,232,.2); letter-spacing: 1px; f
     #E63B3B 0, #E63B3B 40px, #F5C842 40px, #F5C842 80px,
     #1A1A1A 80px, #1A1A1A 120px
   );
+  background-size: 240px 6px;
+  animation: edgeShift 12s linear infinite;
+}
+@keyframes edgeShift {
+  from { background-position: 0 0; }
+  to { background-position: 240px 0; }
+}
+@keyframes floatBob {
+  0%,100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes floatTilt {
+  0%,100% { transform: rotate(-8deg) translateY(0px); }
+  50% { transform: rotate(-5deg) translateY(-6px); }
+}
+.hero-bubble-wrap,
+.free-tag {
+  animation: floatBob 5.2s ease-in-out infinite;
+}
+.sfx {
+  animation: floatTilt 6s ease-in-out infinite;
 }
 
 /* REVEAL */
@@ -1180,7 +1213,16 @@ const obs = new IntersectionObserver(entries=>{
     if(e.isIntersecting) e.target.classList.add('vis');
   });
 },{threshold:.1});
-document.querySelectorAll('.sr,.sl').forEach(el=>obs.observe(el));
+
+function bindRevealTargets(root = document) {
+  root.querySelectorAll('.sr,.sl').forEach(el => {
+    if (el.dataset.revealBound === '1') return;
+    el.dataset.revealBound = '1';
+    obs.observe(el);
+  });
+}
+
+bindRevealTargets();
 
 const landingCounterTriggers = new Set();
 
@@ -1233,6 +1275,98 @@ gsap.from('.speech-bubble-big',{
   scale:.9,opacity:0,duration:.6,ease:'back.out(1.4)',stagger:.15,
   scrollTrigger:{trigger:'.speech-grid',start:'top 80%'}
 });
+
+function setupNavScrollMotion() {
+  const syncNav = () => document.body.classList.toggle('scrolled', window.scrollY > 24);
+  syncNav();
+  window.addEventListener('scroll', syncNav, { passive: true });
+}
+
+function setupAmbientMotion() {
+  gsap.utils.toArray('.speed-bg').forEach((el, index) => {
+    gsap.to(el, {
+      rotation: index % 2 === 0 ? 8 : -8,
+      scale: 1.04,
+      duration: 16 + index * 2,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut',
+      transformOrigin: '50% 50%',
+    });
+  });
+
+  gsap.to('.speech-card .speaker', {
+    y: -4,
+    duration: 2.8,
+    repeat: -1,
+    yoyo: true,
+    ease: 'sine.inOut',
+    stagger: 0.18,
+  });
+}
+
+function setupMagneticHover(selector) {
+  document.querySelectorAll(selector).forEach(el => {
+    el.addEventListener('mousemove', e => {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left - r.width / 2) / r.width;
+      const y = (e.clientY - r.top - r.height / 2) / r.height;
+      gsap.to(el, { x: x * 8, y: y * 6, duration: .25, ease: 'power2.out' });
+    });
+    el.addEventListener('mouseleave', () => {
+      gsap.to(el, { x: 0, y: 0, duration: .6, ease: 'elastic.out(1,.45)' });
+    });
+  });
+}
+
+function setupPanelDepth(selector, strength = 4) {
+  document.querySelectorAll(selector).forEach(el => {
+    el.addEventListener('mousemove', e => {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - .5;
+      const y = (e.clientY - r.top) / r.height - .5;
+      gsap.to(el, {
+        rotateY: x * strength,
+        rotateX: -y * (strength - 1),
+        x: x * 6,
+        y: y * 4,
+        duration: .35,
+        ease: 'power2.out',
+        transformPerspective: 900,
+        transformOrigin: '50% 50%',
+      });
+    });
+    el.addEventListener('mouseleave', () => {
+      gsap.to(el, {
+        rotateY: 0,
+        rotateX: 0,
+        x: 0,
+        y: 0,
+        duration: .7,
+        ease: 'elastic.out(1,.45)',
+      });
+    });
+  });
+}
+
+function setupSectionReveals() {
+  gsap.utils.toArray('section').forEach(section => {
+    const targets = section.querySelectorAll('.sec-head,.cs-panel,.feat-sm,.speech-card,.cta-left,.cta-right');
+    if (!targets.length) return;
+    gsap.from(targets, {
+      y: 26,
+      opacity: 0,
+      duration: .75,
+      stagger: .08,
+      ease: 'power2.out',
+      scrollTrigger: {
+        trigger: section,
+        start: 'top 78%',
+        once: true,
+      }
+    });
+  });
+}
 
 function escapeHtml(value = '') {
   return String(value)
@@ -1379,6 +1513,8 @@ function renderTestimonials(items) {
     </div>
   `).join('');
 
+  bindRevealTargets(grid);
+
   grid.querySelectorAll('.speech-bubble-big').forEach(el => {
     el.addEventListener('mouseenter', () => document.body.classList.add('hov'));
     el.addEventListener('mouseleave', () => document.body.classList.remove('hov'));
@@ -1474,6 +1610,12 @@ document.addEventListener('sf:login', e => {
   localStorage.setItem('sf_user_id', e.detail.id);
   window.location.href = `profile.html?id=${e.detail.id}`;
 });
+
+setupNavScrollMotion();
+setupAmbientMotion();
+setupMagneticHover('.nav-btn,.cta-btn-main,.cta-btn-sec');
+setupPanelDepth('.panel-b,.panel-c,.panel-d,.cs-panel,.speech-card', 5);
+setupSectionReveals();
 
 hydrateLandingContent().catch(err => {
   console.warn('Could not load landing content:', err.message);
