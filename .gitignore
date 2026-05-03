@@ -1,8 +1,13 @@
 .env
+.env.local
+.env.production
+.env.test
 .DS_Store
 .history/
 node_modules/
 *.log
+.log*
+.test.ts.snap
 .next/
 tsconfig.tsbuildinfo
 coverage/

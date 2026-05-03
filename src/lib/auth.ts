@@ -1,7 +1,8 @@
-import jwt, { type SignOptions } from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { type SignOptions } from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
 
-import { getJwtSecret } from '@/lib/jwt';
+import { generateToken, verifyToken } from '@/lib/jwt';
 
 export type AuthPayload = {
   id: number;
@@ -9,12 +10,19 @@ export type AuthPayload = {
   email: string;
 };
 
-export function signToken(user: AuthPayload) {
-  const expiresIn = (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'];
+export async function hashPassword(password: string) {
+  return bcrypt.hash(password, 10);
+}
 
-  return jwt.sign(user, getJwtSecret(), {
-    expiresIn
-  });
+export async function verifyPassword(password: string, passwordHash: string) {
+  return bcrypt.compare(password, passwordHash);
+}
+
+export function signToken(user: AuthPayload) {
+  const expiresIn = (process.env.JWT_EXPIRES_IN ||
+    '7d') as SignOptions['expiresIn'];
+
+  return generateToken(user, expiresIn);
 }
 
 export function readBearerToken(request: NextRequest) {
@@ -29,14 +37,14 @@ export function requireAuth(request: NextRequest) {
     throw new Error('Unauthorized: No token provided.');
   }
 
-  return jwt.verify(token, getJwtSecret()) as AuthPayload;
+  return verifyToken<AuthPayload>(token);
 }
 
 export function optionalAuth(request: NextRequest) {
   try {
     const token = readBearerToken(request);
     if (!token) return null;
-    return jwt.verify(token, getJwtSecret()) as AuthPayload;
+    return verifyToken<AuthPayload>(token);
   } catch {
     return null;
   }

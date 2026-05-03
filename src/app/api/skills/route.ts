@@ -1,50 +1,39 @@
 import { NextRequest } from 'next/server';
-import { z } from 'zod';
 
 import { requireAuth } from '@/lib/auth';
-import { resolveSkillRuleKey, verifyGitHubSkillProof } from '@/lib/github-proof';
+import {
+  resolveSkillRuleKey,
+  verifyGitHubSkillProof
+} from '@/lib/github-proof';
 import { fail, ok } from '@/lib/http';
 import { recomputeMatches } from '@/lib/matches';
 import { applyXpDelta } from '@/lib/progress';
 import { prisma } from '@/lib/prisma';
 import { publishEvent } from '@/lib/realtime';
 import { enqueueSearchSync } from '@/lib/search';
+import {
+  proofVerificationLimiter,
+  withRateLimit
+} from '@/middleware/rate-limit';
+import { skillSchema, validateRequest } from '@/lib/validation';
 
-const evidenceTypeValues = [
-  'profile',
-  'repo',
-  'commit',
-  'project',
-  'pull_request',
-  'demo',
-  'case_study',
-  'certification',
-  'article',
-  'work_sample'
-] as const;
-
-const evidenceSchema = z.object({
-  type: z.enum(evidenceTypeValues),
-  title: z.string().trim().max(120).optional().nullable(),
-  url: z.string().url(),
-  issuer: z.string().trim().max(120).optional().nullable(),
-  description: z.string().trim().max(500).optional().nullable(),
-  impact: z.string().trim().max(255).optional().nullable(),
-  is_verified: z.boolean().optional()
-});
-
-const schema = z.object({
-  name: z.string().trim().min(1).max(80),
-  level: z.number().int().min(1).max(5),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  proof_url: z.string().url().optional().nullable(),
-  evidence: z.array(evidenceSchema).max(6).optional()
-});
-
-export async function POST(request: NextRequest) {
+const postHandler = async (request: NextRequest) => {
   try {
     const auth = requireAuth(request);
-    const body = schema.parse(await request.json());
+    const rawBody = await request.json();
+    const validation = validateRequest(skillSchema, rawBody);
+
+    if (!validation.success) {
+      return Response.json(
+        {
+          error: 'Validation failed',
+          details: validation.errors?.issues
+        },
+        { status: 400 }
+      );
+    }
+
+    const body = validation.data;
     const requestedSkillKey = resolveSkillRuleKey(body.name);
     const proofUrls = [
       body.proof_url || '',
@@ -77,12 +66,17 @@ export async function POST(request: NextRequest) {
       try {
         return resolveSkillRuleKey(skill.name) === requestedSkillKey;
       } catch {
-        return skill.name.trim().toLowerCase() === body.name.trim().toLowerCase();
+        return (
+          skill.name.trim().toLowerCase() === body.name.trim().toLowerCase()
+        );
       }
     });
 
     if (duplicate) {
-      return fail(409, `You already have "${duplicate.name}". Update it instead.`);
+      return fail(
+        409,
+        `You already have "${duplicate.name}". Update it instead.`
+      );
     }
 
     const verification = await verifyGitHubSkillProof({
@@ -148,10 +142,6 @@ export async function POST(request: NextRequest) {
 
     return ok(skill, { status: 201 });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return fail(400, error.issues[0]?.message || 'Invalid request.');
-    }
-
     if ((error as { code?: string }).code === 'P2002') {
       return fail(409, 'You already have this skill. Update it instead.');
     }
@@ -163,4 +153,6 @@ export async function POST(request: NextRequest) {
     console.error(error);
     return fail(500, 'Could not add skill.');
   }
-}
+};
+
+export const POST = withRateLimit(proofVerificationLimiter, postHandler);

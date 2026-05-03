@@ -1,28 +1,41 @@
-import bcrypt from 'bcryptjs';
-import { z } from 'zod';
-
-import { signToken } from '@/lib/auth';
+import { signToken, verifyPassword } from '@/lib/auth';
 import { fail, ok } from '@/lib/http';
 import { prisma } from '@/lib/prisma';
+import { authLimiter, withRateLimit } from '@/middleware/rate-limit';
+import { loginSchema, validateRequest } from '@/lib/validation';
 
-const schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1)
-});
-
-export async function POST(request: Request) {
+const postHandler = async (request: Request) => {
   try {
-    const body = schema.parse(await request.json());
+    const rawBody = await request.json();
+    const validation = validateRequest(loginSchema, rawBody);
 
-    const user = await prisma.user.findUnique({
-      where: { email: body.email }
+    if (!validation.success) {
+      return Response.json(
+        {
+          error: 'Validation failed',
+          details: validation.errors?.issues
+        },
+        { status: 400 }
+      );
+    }
+
+    const body = validation.data;
+
+    const user = await prisma.user.findFirst({
+      where: body.email
+        ? {
+            OR: [{ email: body.email }, { username: body.email }]
+          }
+        : {
+            username: body.username
+          }
     });
 
     if (!user) {
       return fail(401, 'Invalid credentials.');
     }
 
-    const valid = await bcrypt.compare(body.password, user.passwordHash);
+    const valid = await verifyPassword(body.password, user.passwordHash);
     if (!valid) {
       return fail(401, 'Invalid credentials.');
     }
@@ -48,11 +61,9 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return fail(400, error.issues[0]?.message || 'Invalid request.');
-    }
-
     console.error(error);
     return fail(500, 'Login failed.');
   }
-}
+};
+
+export const POST = withRateLimit(authLimiter, postHandler);

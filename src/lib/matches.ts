@@ -1,6 +1,28 @@
 import { prisma } from '@/lib/prisma';
 import { publishEvent } from '@/lib/realtime';
 
+function normalizeSkillName(name: string) {
+  return name.trim().toLowerCase();
+}
+
+export function computeComplementScore(userA: string[], userB: string[]) {
+  const left = new Set(userA.map(normalizeSkillName).filter(Boolean));
+  const right = new Set(userB.map(normalizeSkillName).filter(Boolean));
+  const totalUnique = new Set([...left, ...right]).size;
+
+  if (!totalUnique) return 0;
+
+  let overlap = 0;
+  for (const skill of left) {
+    if (right.has(skill)) {
+      overlap += 1;
+    }
+  }
+
+  const nonOverlapping = totalUnique - overlap;
+  return Math.round((nonOverlapping / totalUnique) * 100);
+}
+
 export async function recomputeMatches(userId: number) {
   const [mine, others, otherSkills] = await Promise.all([
     prisma.skill.findMany({
@@ -17,7 +39,7 @@ export async function recomputeMatches(userId: number) {
     })
   ]);
 
-  const myNames = new Set(mine.map((skill) => skill.name));
+  const myNames = new Set(mine.map((skill) => normalizeSkillName(skill.name)));
   const myNamesList = [...myNames];
   const skillsByUser = new Map<number, string[]>(
     others.map((user) => [user.id, [] as string[]])
@@ -25,7 +47,7 @@ export async function recomputeMatches(userId: number) {
 
   for (const row of otherSkills) {
     const list = skillsByUser.get(row.userId) ?? [];
-    list.push(row.name);
+    list.push(normalizeSkillName(row.name));
     skillsByUser.set(row.userId, list);
   }
 
@@ -36,12 +58,7 @@ export async function recomputeMatches(userId: number) {
   });
 
   for (const [otherId, names] of skillsByUser.entries()) {
-    const theirNames = new Set(names);
-    const theirNamesList = [...theirNames];
-    const theyFill = theirNamesList.filter((name) => !myNames.has(name)).length;
-    const youFill = myNamesList.filter((name) => !theirNames.has(name)).length;
-    const total = new Set([...myNamesList, ...theirNamesList]).size;
-    const score = total > 0 ? Math.round(((theyFill + youFill) / total) * 100) : 0;
+    const score = computeComplementScore(myNamesList, names);
 
     await prisma.match.upsert({
       where: {

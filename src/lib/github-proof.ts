@@ -139,6 +139,7 @@ type RepoSummary = {
   html_url: string;
   description: string | null;
   language: string | null;
+  open_issues_count?: number;
   owner: {
     login: string;
     type: string;
@@ -193,7 +194,16 @@ const SKILL_RULES: SkillRule[] = [
     key: 'python',
     aliases: ['python'],
     languages: ['Python'],
-    dependencyTokens: ['python', 'fastapi', 'django', 'flask', 'numpy', 'pandas', 'tensorflow', 'pytorch'],
+    dependencyTokens: [
+      'python',
+      'fastapi',
+      'django',
+      'flask',
+      'numpy',
+      'pandas',
+      'tensorflow',
+      'pytorch'
+    ],
     textTokens: ['python', 'fastapi', 'django', 'flask', 'jupyter'],
     fileTokens: ['requirements.txt', 'pyproject.toml', 'setup.py', '.py'],
     supportsGithub: true
@@ -231,14 +241,26 @@ const SKILL_RULES: SkillRule[] = [
     languages: ['JavaScript', 'TypeScript'],
     dependencyTokens: ['next'],
     textTokens: ['next.js', 'nextjs'],
-    fileTokens: ['package.json', 'next.config.js', 'next.config.mjs', 'next.config.ts'],
+    fileTokens: [
+      'package.json',
+      'next.config.js',
+      'next.config.mjs',
+      'next.config.ts'
+    ],
     supportsGithub: true
   },
   {
     key: 'node',
     aliases: ['node', 'nodejs'],
     languages: ['JavaScript', 'TypeScript'],
-    dependencyTokens: ['express', 'koa', 'fastify', 'nestjs', '@nestjs/core', 'hono'],
+    dependencyTokens: [
+      'express',
+      'koa',
+      'fastify',
+      'nestjs',
+      '@nestjs/core',
+      'hono'
+    ],
     textTokens: ['node', 'backend', 'api'],
     fileTokens: ['package.json', '.js', '.ts'],
     supportsGithub: true
@@ -247,7 +269,14 @@ const SKILL_RULES: SkillRule[] = [
     key: 'sql',
     aliases: ['sql', 'postgresql', 'postgres'],
     languages: ['SQL'],
-    dependencyTokens: ['prisma', 'sequelize', 'typeorm', 'knex', 'pg', 'postgres'],
+    dependencyTokens: [
+      'prisma',
+      'sequelize',
+      'typeorm',
+      'knex',
+      'pg',
+      'postgres'
+    ],
     textTokens: ['sql', 'postgres', 'database'],
     fileTokens: ['schema.prisma', '.sql'],
     supportsGithub: true
@@ -410,7 +439,9 @@ export async function verifyGitHubSkillProof(input: {
     );
   }
 
-  const urls = [...new Set(input.candidateUrls.map((item) => item.trim()).filter(Boolean))];
+  const urls = [
+    ...new Set(input.candidateUrls.map((item) => item.trim()).filter(Boolean))
+  ];
   if (!urls.length) {
     throw new Error('A public GitHub proof link is required for every skill.');
   }
@@ -438,8 +469,12 @@ export async function verifyGitHubSkillProof(input: {
 
     if (!identity) {
       identity = result.identity;
-    } else if (result.identity.login.toLowerCase() !== identity.login.toLowerCase()) {
-      throw new Error('This GitHub link does not match your verified GitHub identity.');
+    } else if (
+      result.identity.login.toLowerCase() !== identity.login.toLowerCase()
+    ) {
+      throw new Error(
+        'This GitHub link does not match your verified GitHub identity.'
+      );
     }
 
     for (const item of result.evidence) {
@@ -451,7 +486,9 @@ export async function verifyGitHubSkillProof(input: {
   }
 
   if (!identity) {
-    throw new Error('Could not establish a public GitHub identity from the provided proof.');
+    throw new Error(
+      'Could not establish a public GitHub identity from the provided proof.'
+    );
   }
 
   if (!evidence.length) {
@@ -500,6 +537,61 @@ export function resolveSkillRuleKey(skillName: string) {
   return getSkillRule(skillName)?.key || null;
 }
 
+export async function verifyGithubProof(url: string) {
+  let spec: GitHubUrlSpec;
+
+  try {
+    spec = parseGitHubUrl(url);
+  } catch (error) {
+    return {
+      verified: false,
+      error: error instanceof Error ? error.message : 'Invalid GitHub proof.'
+    };
+  }
+
+  if (spec.kind === 'profile') {
+    return {
+      verified: true,
+      type: 'profile',
+      url: spec.normalizedUrl,
+      stats: {
+        stars: 0,
+        forks: 0,
+        openIssues: 0
+      }
+    };
+  }
+
+  try {
+    const repo = await fetchGitHub<RepoSummary>(
+      `/repos/${spec.owner}/${spec.repo}`
+    );
+    if (!repo) {
+      return {
+        verified: false,
+        error: 'GitHub repository not found.'
+      };
+    }
+
+    return {
+      verified: true,
+      type: spec.kind,
+      url: spec.normalizedUrl,
+      stats: {
+        stars: repo.stargazers_count || 0,
+        forks: repo.forks_count || 0,
+        openIssues: repo.open_issues_count || 0
+      }
+    };
+  } catch (error) {
+    return {
+      verified: false,
+      error:
+        error instanceof Error ? error.message : 'GitHub verification failed.'
+    };
+  }
+}
+
 function findSkillRuleByNormalizedName(normalized: string) {
   return SKILL_RULES.find((rule) =>
     [rule.key, ...rule.aliases].some(
@@ -532,12 +624,16 @@ function parseGitHubUrl(rawUrl: string): GitHubUrlSpec {
 
   const host = url.hostname.toLowerCase();
   if (host !== 'github.com' && host !== 'www.github.com') {
-    throw new Error('Only public github.com links are accepted for skill proof right now.');
+    throw new Error(
+      'Only public github.com links are accepted for skill proof right now.'
+    );
   }
 
   const segments = url.pathname.split('/').filter(Boolean);
   if (!segments.length) {
-    throw new Error('GitHub proof must point to a public profile, repo, PR, or commit.');
+    throw new Error(
+      'GitHub proof must point to a public profile, repo, PR, or commit.'
+    );
   }
 
   if (segments.length === 1) {
@@ -555,7 +651,9 @@ function parseGitHubUrl(rawUrl: string): GitHubUrlSpec {
 
   const [owner, repo, resource, resourceId] = segments;
   if (!owner || !repo) {
-    throw new Error('GitHub proof must point to a public profile, repo, PR, or commit.');
+    throw new Error(
+      'GitHub proof must point to a public profile, repo, PR, or commit.'
+    );
   }
 
   const normalizedRepoUrl = `https://github.com/${owner}/${repo}`;
@@ -618,11 +716,21 @@ async function resolveGitHubUrl(input: {
 }): Promise<{ identity: GitHubIdentity; evidence: VerifiedSkillEvidence[] }> {
   switch (input.spec.kind) {
     case 'profile':
-      return resolveGitHubProfile(input.spec, input.expectedIdentity, input.rule, input.skillName);
+      return resolveGitHubProfile(
+        input.spec,
+        input.expectedIdentity,
+        input.rule,
+        input.skillName
+      );
     case 'repo':
     case 'tree':
     case 'blob':
-      return resolveGitHubRepo(input.spec, input.expectedIdentity, input.rule, input.skillName);
+      return resolveGitHubRepo(
+        input.spec,
+        input.expectedIdentity,
+        input.rule,
+        input.skillName
+      );
     case 'pull_request':
       return resolveGitHubPullRequest(
         input.spec,
@@ -631,7 +739,12 @@ async function resolveGitHubUrl(input: {
         input.skillName
       );
     case 'commit':
-      return resolveGitHubCommit(input.spec, input.expectedIdentity, input.rule, input.skillName);
+      return resolveGitHubCommit(
+        input.spec,
+        input.expectedIdentity,
+        input.rule,
+        input.skillName
+      );
   }
 }
 
@@ -649,19 +762,24 @@ async function resolveGitHubProfile(
   }>(`/users/${spec.login}`);
 
   if (!user || user.type !== 'User') {
-    throw new Error('This GitHub profile is not public or does not belong to a user account.');
+    throw new Error(
+      'This GitHub profile is not public or does not belong to a user account.'
+    );
   }
 
   if (
     expectedIdentity &&
     expectedIdentity.login.toLowerCase() !== user.login.toLowerCase()
   ) {
-    throw new Error('This GitHub profile does not match your verified GitHub identity.');
+    throw new Error(
+      'This GitHub profile does not match your verified GitHub identity.'
+    );
   }
 
-  const repos = (await fetchGitHub<RepoSummary[]>(
-    `/users/${user.login}/repos?per_page=15&sort=updated&type=owner`
-  )) || [];
+  const repos =
+    (await fetchGitHub<RepoSummary[]>(
+      `/users/${user.login}/repos?per_page=15&sort=updated&type=owner`
+    )) || [];
 
   const quickCandidates = repos
     .map((repo) => ({
@@ -674,7 +792,11 @@ async function resolveGitHubProfile(
 
   const evidence: VerifiedSkillEvidence[] = [];
   for (const candidate of quickCandidates) {
-    const inspected = await inspectRepo(candidate.repo.owner.login, candidate.repo.name, rule);
+    const inspected = await inspectRepo(
+      candidate.repo.owner.login,
+      candidate.repo.name,
+      rule
+    );
     if (inspected.relevanceScore < MIN_RELEVANCE_SCORE) continue;
     evidence.push(
       createRepoEvidence(inspected, {
@@ -708,7 +830,9 @@ async function resolveGitHubRepo(
   rule: SkillRule,
   skillName: string
 ): Promise<{ identity: GitHubIdentity; evidence: VerifiedSkillEvidence[] }> {
-  const repo = await fetchGitHub<RepoSummary>(`/repos/${spec.owner}/${spec.repo}`);
+  const repo = await fetchGitHub<RepoSummary>(
+    `/repos/${spec.owner}/${spec.repo}`
+  );
   if (!repo || repo.private) {
     throw new Error('This GitHub repository is not public.');
   }
@@ -733,7 +857,9 @@ async function resolveGitHubRepo(
     (await userContributedToRepo(identity.login, spec.owner, spec.repo));
 
   if (!authentic) {
-    throw new Error('This GitHub repository cannot be tied to your public GitHub identity.');
+    throw new Error(
+      'This GitHub repository cannot be tied to your public GitHub identity.'
+    );
   }
 
   const inspected = await inspectRepo(spec.owner, spec.repo, rule);
@@ -777,7 +903,9 @@ async function resolveGitHubPullRequest(
   }>(`/repos/${spec.owner}/${spec.repo}/pulls/${spec.number}`);
 
   if (!pr || !pr.user) {
-    throw new Error('This GitHub pull request is not public or cannot be attributed to a user.');
+    throw new Error(
+      'This GitHub pull request is not public or cannot be attributed to a user.'
+    );
   }
 
   const identity = expectedIdentity || {
@@ -786,7 +914,9 @@ async function resolveGitHubPullRequest(
   };
 
   if (identity.login.toLowerCase() !== pr.user.login.toLowerCase()) {
-    throw new Error('This GitHub pull request does not match your verified GitHub identity.');
+    throw new Error(
+      'This GitHub pull request does not match your verified GitHub identity.'
+    );
   }
 
   const files =
@@ -805,7 +935,10 @@ async function resolveGitHubPullRequest(
     ? 15
     : 0;
 
-  const relevanceScore = Math.min(100, inspected.relevanceScore + changedFileScore);
+  const relevanceScore = Math.min(
+    100,
+    inspected.relevanceScore + changedFileScore
+  );
   if (relevanceScore < MIN_RELEVANCE_SCORE) {
     throw new Error(
       `This GitHub pull request does not show enough public ${skillName} evidence to accept the skill.`
@@ -822,7 +955,9 @@ async function resolveGitHubPullRequest(
     repositoryName: `${spec.owner}/${spec.repo}`,
     issuer: 'GitHub',
     description: pr.title,
-    impact: pr.merged_at ? 'Merged public pull request.' : 'Open public pull request.',
+    impact: pr.merged_at
+      ? 'Merged public pull request.'
+      : 'Open public pull request.',
     verificationSummary: `Verified as ${pr.user.login}'s public pull request with ${skillName}-relevant repo signals.`,
     verificationScore: Math.min(
       100,
@@ -860,7 +995,9 @@ async function resolveGitHubCommit(
   }>(`/repos/${spec.owner}/${spec.repo}/commits/${spec.sha}`);
 
   if (!commit || !commit.author) {
-    throw new Error('This GitHub commit is not public or cannot be attributed to a user.');
+    throw new Error(
+      'This GitHub commit is not public or cannot be attributed to a user.'
+    );
   }
 
   const identity = expectedIdentity || {
@@ -869,7 +1006,9 @@ async function resolveGitHubCommit(
   };
 
   if (identity.login.toLowerCase() !== commit.author.login.toLowerCase()) {
-    throw new Error('This GitHub commit does not match your verified GitHub identity.');
+    throw new Error(
+      'This GitHub commit does not match your verified GitHub identity.'
+    );
   }
 
   const files = commit.files || [];
@@ -882,7 +1021,10 @@ async function resolveGitHubCommit(
   ).length
     ? 14
     : 0;
-  const relevanceScore = Math.min(100, inspected.relevanceScore + changedFileScore);
+  const relevanceScore = Math.min(
+    100,
+    inspected.relevanceScore + changedFileScore
+  );
 
   if (relevanceScore < MIN_RELEVANCE_SCORE) {
     throw new Error(
@@ -934,7 +1076,9 @@ async function inspectRepo(
   }
 
   const languages =
-    (await fetchGitHub<Record<string, number>>(`/repos/${owner}/${repoName}/languages`)) || {};
+    (await fetchGitHub<Record<string, number>>(
+      `/repos/${owner}/${repoName}/languages`
+    )) || {};
   const contents =
     (await fetchGitHub<Array<{ name: string; type: string }>>(
       `/repos/${owner}/${repoName}/contents`
@@ -943,11 +1087,15 @@ async function inspectRepo(
   const manifestFiles = contents
     .filter((item) => item.type === 'file')
     .map((item) => item.name)
-    .filter((name) => ROOT_MANIFEST_FILES.includes(name as (typeof ROOT_MANIFEST_FILES)[number]))
+    .filter((name) =>
+      ROOT_MANIFEST_FILES.includes(name as (typeof ROOT_MANIFEST_FILES)[number])
+    )
     .slice(0, 5);
 
   const manifestTexts = await Promise.all(
-    manifestFiles.map((fileName) => fetchRepoFileText(owner, repoName, fileName))
+    manifestFiles.map((fileName) =>
+      fetchRepoFileText(owner, repoName, fileName)
+    )
   );
 
   const textHaystack = [
@@ -969,10 +1117,14 @@ async function inspectRepo(
     rule.languages.some((item) => item.toLowerCase() === language.toLowerCase())
   );
   const dependencyMatches = uniqueMatches(
-    rule.dependencyTokens.filter((token) => textHaystack.includes(token.toLowerCase()))
+    rule.dependencyTokens.filter((token) =>
+      textHaystack.includes(token.toLowerCase())
+    )
   );
   const matchedTexts = uniqueMatches(
-    rule.textTokens.filter((token) => textHaystack.includes(token.toLowerCase()))
+    rule.textTokens.filter((token) =>
+      textHaystack.includes(token.toLowerCase())
+    )
   );
   const matchedFiles = matchFileTokens(fileNames, rule.fileTokens);
 
@@ -985,7 +1137,9 @@ async function inspectRepo(
   relevanceScore = Math.min(100, relevanceScore);
 
   const summaryBits = [
-    matchedLanguages.length ? `languages: ${matchedLanguages.join(', ')}` : null,
+    matchedLanguages.length
+      ? `languages: ${matchedLanguages.join(', ')}`
+      : null,
     dependencyMatches.length ? `deps: ${dependencyMatches.join(', ')}` : null,
     matchedTexts.length ? `repo text: ${matchedTexts.join(', ')}` : null,
     matchedFiles.length ? `files: ${matchedFiles.join(', ')}` : null
@@ -1027,7 +1181,8 @@ function createRepoEvidence(
   }
 ): VerifiedSkillEvidence {
   const baseScore = input.type === 'profile' ? 22 : 30;
-  const evidenceType: EvidenceType = input.type === 'profile' ? 'profile' : 'repo';
+  const evidenceType: EvidenceType =
+    input.type === 'profile' ? 'profile' : 'repo';
 
   return {
     type: evidenceType,
@@ -1051,7 +1206,10 @@ function createRepoEvidence(
       100,
       baseScore +
         inspected.relevanceScore +
-        (inspected.repo.owner.login.toLowerCase() === input.identityLogin.toLowerCase() ? 12 : 6)
+        (inspected.repo.owner.login.toLowerCase() ===
+        input.identityLogin.toLowerCase()
+          ? 12
+          : 6)
     ),
     relevanceScore: inspected.relevanceScore,
     metadata: {
@@ -1069,7 +1227,12 @@ function quickRepoSignal(repo: RepoSummary, rule: SkillRule) {
     .toLowerCase();
 
   let score = 0;
-  if (repo.language && rule.languages.some((item) => item.toLowerCase() === repo.language?.toLowerCase())) {
+  if (
+    repo.language &&
+    rule.languages.some(
+      (item) => item.toLowerCase() === repo.language?.toLowerCase()
+    )
+  ) {
     score += 20;
   }
 
@@ -1096,7 +1259,11 @@ function uniqueMatches(values: string[]) {
   return [...new Set(values)];
 }
 
-async function userContributedToRepo(login: string, owner: string, repo: string) {
+async function userContributedToRepo(
+  login: string,
+  owner: string,
+  repo: string
+) {
   const contributors =
     (await fetchGitHub<Array<{ login: string }>>(
       `/repos/${owner}/${repo}/contributors?per_page=100`
@@ -1107,7 +1274,11 @@ async function userContributedToRepo(login: string, owner: string, repo: string)
   );
 }
 
-async function fetchRepoFileText(owner: string, repo: string, filePath: string) {
+async function fetchRepoFileText(
+  owner: string,
+  repo: string,
+  filePath: string
+) {
   const file = await fetchGitHub<{
     content?: string;
     encoding?: string;
@@ -1143,9 +1314,13 @@ async function fetchGitHub<T>(path: string): Promise<T | null> {
 
   if (!response.ok) {
     if (response.status === 403) {
-      throw new Error('GitHub verification is temporarily unavailable due to API limits.');
+      throw new Error(
+        'GitHub verification is temporarily unavailable due to API limits.'
+      );
     }
-    throw new Error('GitHub verification failed while checking the provided proof.');
+    throw new Error(
+      'GitHub verification failed while checking the provided proof.'
+    );
   }
 
   return (await response.json()) as T;

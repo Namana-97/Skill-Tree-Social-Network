@@ -1,20 +1,29 @@
 import { NextRequest } from 'next/server';
-import { z } from 'zod';
 
 import { requireAuth } from '@/lib/auth';
 import { fail, ok } from '@/lib/http';
 import { prisma } from '@/lib/prisma';
 import { publishEvent } from '@/lib/realtime';
+import { apiLimiter, withRateLimit } from '@/middleware/rate-limit';
+import { edgeSchema, validateRequest } from '@/lib/validation';
 
-const schema = z.object({
-  source_skill_id: z.number().int(),
-  target_skill_id: z.number().int()
-});
-
-export async function POST(request: NextRequest) {
+const postHandler = async (request: NextRequest) => {
   try {
     const auth = requireAuth(request);
-    const body = schema.parse(await request.json());
+    const rawBody = await request.json();
+    const validation = validateRequest(edgeSchema, rawBody);
+
+    if (!validation.success) {
+      return Response.json(
+        {
+          error: 'Validation failed',
+          details: validation.errors?.issues
+        },
+        { status: 400 }
+      );
+    }
+
+    const body = validation.data;
 
     if (body.source_skill_id === body.target_skill_id) {
       return fail(400, 'Cannot connect a skill to itself.');
@@ -65,11 +74,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return fail(400, error.issues[0]?.message || 'Invalid request.');
-    }
-
     console.error(error);
     return fail(500, 'Could not add edge.');
   }
-}
+};
+
+export const POST = withRateLimit(apiLimiter, postHandler);

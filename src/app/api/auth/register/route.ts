@@ -1,21 +1,25 @@
-import bcrypt from 'bcryptjs';
-import { z } from 'zod';
-
-import { signToken } from '@/lib/auth';
+import { hashPassword, signToken } from '@/lib/auth';
 import { fail, ok } from '@/lib/http';
 import { prisma } from '@/lib/prisma';
+import { authLimiter, withRateLimit } from '@/middleware/rate-limit';
+import { registerSchema, validateRequest } from '@/lib/validation';
 
-const schema = z.object({
-  username: z.string().trim().min(3).max(40),
-  email: z.string().email(),
-  password: z.string().min(6),
-  display_name: z.string().trim().min(1),
-  role_title: z.string().trim().optional().default('')
-});
-
-export async function POST(request: Request) {
+const postHandler = async (request: Request) => {
   try {
-    const body = schema.parse(await request.json());
+    const rawBody = await request.json();
+    const validation = validateRequest(registerSchema, rawBody);
+
+    if (!validation.success) {
+      return Response.json(
+        {
+          error: 'Validation failed',
+          details: validation.errors?.issues
+        },
+        { status: 400 }
+      );
+    }
+
+    const body = validation.data;
 
     const exists = await prisma.user.findFirst({
       where: {
@@ -28,7 +32,7 @@ export async function POST(request: Request) {
       return fail(409, 'Username or email already taken.');
     }
 
-    const passwordHash = await bcrypt.hash(body.password, 10);
+    const passwordHash = await hashPassword(body.password);
     const initials = body.display_name
       .split(' ')
       .filter(Boolean)
@@ -73,11 +77,9 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return fail(400, error.issues[0]?.message || 'Invalid request.');
-    }
-
     console.error(error);
     return fail(500, 'Registration failed.');
   }
-}
+};
+
+export const POST = withRateLimit(authLimiter, postHandler);
